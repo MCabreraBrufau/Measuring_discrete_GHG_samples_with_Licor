@@ -6,9 +6,10 @@ The script integrates the area under the peak produced when injecting a small vo
 
 The peak detection and area integration script was adapted from [Miguel Cabrera's repository](https://github.com/MCabreraBrufau/Licor_N2O_scripts), originally created for N₂O measurements. The contribution here is simply to modify the script to include calculations for CO₂ and CH₄.
 
-### Requirements:
+###  How to procedure:
 1. Download this folder
 2. Replace raw files from the Li-COR 7820 and/or Li-COR 7810.
 3. Run the `Map_injections.R` script.
 4. Open the "raw_.\*_map_injection..." files, modify the columns labeled "\*_corrected," and save them as `*.csv` files with the corrected data instead of the raw data.
 5. Run the `Raw_to_peaks_Licor.R` script.
+6. Finally, if you have a calibration (see `*.csv` file in calibration folder) yo can run the `Peaks_to_ppm_Licor.R` script
