@@ -10,5 +10,5 @@ The peak detection and area integration script was adapted from [Miguel Cabrera'
 1. Download this folder
 2. Replace raw files from the Li-COR 7820 and/or Li-COR 7810.
 3. Run the `Map_injections.R` script.
-4. Open the "raw_.\*_map_injection..." files, modify the columns labeled "\*_corrected," and save them as `\*.csv` files with the corrected data instead of the raw data.
+4. Open the "raw_.\*_map_injection..." files, modify the columns labeled "\*_corrected," and save them as `*.csv` files with the corrected data instead of the raw data.
 5. Run the `Raw_to_peaks_Licor.R` script.
