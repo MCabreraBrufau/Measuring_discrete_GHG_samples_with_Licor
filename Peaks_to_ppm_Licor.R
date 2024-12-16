@@ -37,41 +37,24 @@ integratedtoppm<- gsub(".csv","",gsub("integrated_injections_","",integratedfile
 calibration <- read_csv(paste0(folder_calibration, "/Calibration_and_limit_of_detection_2024-12-12.csv"))
 
 for (i in integratedtoppm){
+  #Take the correct calibration curve for the gas
+  gasname <- substr(i, 1, 3)
+
+  slope <- calibration %>% filter(Species == gasname) %>% select(Slope) %>% pull()
+  intercept <- calibration %>% filter(Species == gasname) %>% select(Intercept) %>% pull()
+
   #Load integrated peaks of integratedfile i
   int<- read.csv(paste0(folder_results,"/","integrated_injections_",i,".csv"))
-  if (grepl("TG10", i)) {
-    gas <- "CO2_and_CH4"
-    #Calculate ppm of each peak
-    slopeCO2 <- calibration %>% filter(Species == "CO2") %>% select(Slope) %>% pull()
-    interceptCO2 <- calibration %>% filter(Species == "CO2") %>% select(Intercept) %>% pull()
-    
-    slopeCH4 <- calibration %>% filter(Species == "CH4") %>% select(Slope) %>% pull()
-    interceptCH4 <- calibration %>% filter(Species == "CH4") %>% select(Intercept) %>% pull()
-    
-    peak_ppm<- int %>% 
-      separate(peak_id, into = c("sample", "ml_injected","peak_no"), sep = "_",remove = F) %>% 
-      mutate(ml_injected=as.numeric(gsub("[^0-9.]", "", ml_injected)), 
-             CO2_ppm=(peaksum-interceptCO2)/(slopeCO2*ml_injected), 
-             CH4_ppm=(peaksum-interceptCH4)/(slopeCH4*ml_injected)) %>% 
-      select(dayofanalysis, sample, ml_injected, peak_id, CO2_ppm, CH4_ppm, unixtime_ofmax) %>% 
-      mutate(datetime=as.POSIXct(unixtime_ofmax))
-  }
-  if (grepl("TG20", i)) {
-    gas <- "N2O"
-    #Calculate ppm of each peak
-    slope <- calibration %>% filter(Species == "N2O") %>% select(Slope) %>% pull()
-    intercept <- calibration %>% filter(Species == "N2O") %>% select(Intercept) %>% pull()
-    
-    peak_ppm<- int %>% 
-      separate(peak_id, into = c("sample", "ml_injected","peak_no"), sep = "_",remove = F) %>% 
-      mutate(ml_injected=as.numeric(gsub("[^0-9.]", "", ml_injected)), N2O_ppm=((peaksum-intercept))/(slope*ml_injected)) %>% 
-      select(dayofanalysis, sample, ml_injected, peak_id, N2O_ppm, unixtime_ofmax) %>% 
-      mutate(datetime=as.POSIXct(unixtime_ofmax))
-  }
 
-  
+    
+    peak_ppm<- int %>% 
+      separate(peak_id, into = c("sample", "ml_injected","peak_no"), sep = "_",remove = F) %>% 
+      mutate(ml_injected=as.numeric(gsub("[^0-9.]", "", ml_injected)), !!paste0(gasname, "_ppm") := ((peaksum-intercept))/(slope*ml_injected)) %>% 
+      select(dayofanalysis, sample, ml_injected, peak_id, !!paste0(gasname, "_ppm"), unixtime_ofmax) %>% 
+      mutate(datetime=as.POSIXct(unixtime_ofmax))
+
   #Save ppm of peaks
-  write.csv(peak_ppm, file = paste0(folder_results, "/", gas,"ppm_peaks_",i,".csv"), row.names = F)
+  write.csv(peak_ppm, file = paste0(folder_results, "/","ppm_peaks_",i,".csv"), row.names = F)
 
 }
 
