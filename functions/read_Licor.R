@@ -42,8 +42,8 @@ read_Licor_TG10 <- function(file){
                         UTCtime = data$TIME,
                         unixtime = data$SECONDS,
                         H2O = data$H2O,
-                        CO2 = data$CO2,
-                        CH4 = data$CH4/1000, #ppm
+                        CO2 = data$CO2*1000, #ppb
+                        CH4 = data$CH4,
                         Press = data$CAVITY_P,
                         label = data$REMARK)
   
