@@ -5,6 +5,10 @@
 Rawdata/*
 # exception to the rule
 !Rawdata/TG10-01932-2024-12-12T000000.data
+!Rawdata/TG20-01377-2024-12-12T000000.data
 Results_ppm/*
+!Results_ppm/.gitkeep 
 Map_injections/*
+!Map_injections/.gitkeep
 Integration_plots/*
+!Integration_plots/.gitkeep
