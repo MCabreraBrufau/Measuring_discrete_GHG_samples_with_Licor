@@ -2,7 +2,7 @@
 .Rhistory
 .RData
 .Ruserdata
-Rawdata/
-Results_ppm/
-Maps_injections/
-Integration plots/
+Rawdata/*
+Results_ppm/*
+Maps_injections/*
+Integration plots/*
