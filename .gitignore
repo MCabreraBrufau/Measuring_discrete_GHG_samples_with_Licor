@@ -3,6 +3,8 @@
 .RData
 .Ruserdata
 Rawdata/*
+# exception to the rule
+!Rawdata/TG10-01932-2024-12-12T000000.data
 Results_ppm/*
 Map_injections/*
 Integration_plots/*
