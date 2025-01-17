@@ -9,7 +9,10 @@
 # ---- Directories ----
 
 #Root
-folder_root <- dirname(rstudioapi::getSourceEditorContext()$path)
+#Usually you will be working on your working directory
+#folder_root <- dirname(rstudioapi::getSourceEditorContext()$path)
+#But you can set the folder in other path
+folder_root <- "/home/jorge/Documentos/Postdoctoral/Onedrive_UB/UB/NaturBPond/GHG/Pond_element_flux/December/Discrete_samples" # You have to make sure this is pointing to the write folder on your local machine
 
 #Data folders
 folder_calibration <- paste0(folder_root,"/calibration")
@@ -27,11 +30,11 @@ library(ggpmisc)
 
 #Get extracted data
 integratedfiles<- list.files(path = folder_results, pattern = "^integrated_injections_")
-ppmfiles<- list.files(path = folder_results, pattern = "^ppm_samples_")
+ppmfiles<- list.files(path = folder_results, pattern = "^.*ppm_samples_")
 
 #Select integratedfiles without ppm data
 integratedtoppm<- gsub(".csv","",gsub("integrated_injections_","",integratedfiles[
-  !gsub(".csv","",gsub("integrated_injections_","",integratedfiles))%in%gsub(".csv","",gsub("ppm_samples_","",ppmfiles))]))#  integrated files "rawcode" without corresponding ppmfiles "rawcode"
+  !gsub(".csv","",gsub("integrated_injections_","",integratedfiles))%in%gsub(".csv","",gsub("^.*ppm_samples_","",ppmfiles))]))#  integrated files "rawcode" without corresponding ppmfiles "rawcode"
   
 #Get calibration curve
 calibration <- read_csv(paste0(folder_calibration, "/Calibration_and_limit_of_detection_2024-12-12.csv"))
@@ -54,7 +57,7 @@ for (i in integratedtoppm){
       mutate(datetime=as.POSIXct(unixtime_ofmax))
 
   #Save ppm of peaks
-  write.csv(peak_ppm, file = paste0(folder_results, "/","ppm_peaks_",i,".csv"), row.names = F)
+  write.csv(peak_ppm, file = paste0(folder_results, "/","ppm_samples_",i,".csv"), row.names = F)
 
 }
 

@@ -14,9 +14,9 @@
 
 #Root
 #Usually you will be working on your working directory
-folder_root <- dirname(rstudioapi::getSourceEditorContext()$path)
+#folder_root <- dirname(rstudioapi::getSourceEditorContext()$path)
 #But you can set the folder in other path
-#folder_root <- "/home/jorge/Documentos/Postdoctoral/Onedrive_UB/UB/FLURB/N2O/Discrete_sample/Licors_en_serie/Licor_CO2CH4_for_scripts" # You have to make sure this is pointing to the write folder on your local machine
+folder_root <- "/home/jorge/Documentos/Postdoctoral/Onedrive_UB/UB/NaturBPond/GHG/Pond_element_flux/December/Discrete_samples" # You have to make sure this is pointing to the write folder on your local machine
 
 #Data folders
 folder_raw <- paste0(folder_root,"/Rawdata") #contains unedited files downloaded from licor
@@ -68,7 +68,7 @@ integratedfiles<- list.files(path = folder_results, pattern = "^integrated_injec
 #Select code of rawfiles with corresponding mapscorrect but without integratedfiles
 rawtointegrate<- gsub(".data","",rawfiles[
   gsub(".data","",rawfiles)%in%gsub(".csv","",gsub("corrected_.*_map_injection_","",mapscorrect))& #Match raw with maps
-    !gsub(".data","",rawfiles)%in%gsub(".csv","",gsub("integrated_injections_","",integratedfiles)) #Not match raw with integratedfiles
+    !gsub(".data","",rawfiles)%in%gsub(".csv","",gsub("^integrated_injections_[A-Z0-9]{3}_","",integratedfiles)) #Not match raw with integratedfiles
 ])
 
 

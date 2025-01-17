@@ -10,9 +10,9 @@
 
 #Root
 #Usually you will be working on your working directory
-folder_root <- dirname(rstudioapi::getSourceEditorContext()$path)
+# folder_root <- dirname(rstudioapi::getSourceEditorContext()$path)
 #But you can set the folder in other path
-#folder_root <- "/home/jorge/Documentos/Postdoctoral/Onedrive_UB/UB/FLURB/N2O/Discrete_sample/Licors_en_serie/Licor_CO2CH4_for_scripts" # You have to make sure this is pointing to the write folder on your local machine
+folder_root <- "/home/jorge/Documentos/Postdoctoral/Onedrive_UB/UB/NaturBPond/GHG/Pond_element_flux/December/Discrete_samples" # You have to make sure this is pointing to the write folder on your local machine
 
 #Data folders, 
 folder_raw <- paste0(folder_root,"/Rawdata") #contains unedited files downloaded from licor
@@ -39,7 +39,7 @@ for (f in files.sources){source(f)}
 #maps_done will be named as raw_map_injection_rawfile.csv, the rawfile part will not end in .data
 
 #List maps that are already created in folder_mapinjections
-maps_done<- list.files(path=folder_mapinjections, pattern = "^raw_map_injection")
+maps_done<- list.files(path=folder_mapinjections, pattern = "^raw_.*_map_injection")
 
 #List raw files (for Li-7820 and Li-7810) present in folder_raw
 raw_files<- list.files(path = folder_raw, pattern =  "^TG")
@@ -47,7 +47,7 @@ raw_files<- list.files(path = folder_raw, pattern =  "^TG")
 
 
 #Get raw files without corresponding map injection
-raw_files_withoutmap<- raw_files[!gsub(".data", "",raw_files)%in%gsub(".csv", "", gsub(pattern = "raw_map_injection_","",maps_done))]
+raw_files_withoutmap<- raw_files[!gsub(".data", "",raw_files)%in%gsub(".csv", "", gsub(pattern = "raw_.*_map_injection_","",maps_done))]
 
 
 #Collect Tstart Tend and labels for all unique remarks of every raw_file_withoutmap
