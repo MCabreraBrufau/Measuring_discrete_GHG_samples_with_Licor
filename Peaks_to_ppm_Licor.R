@@ -14,8 +14,12 @@
 #But you can set the folder in other path
 folder_root <- "/home/jorge/Documentos/Postdoctoral/Onedrive_UB/UB/NaturBPond/GHG/Pond_element_flux/December/Discrete_samples" # You have to make sure this is pointing to the write folder on your local machine
 
+#Here is the repo root, if we keep the code (scripts and calibration) in a repository (github) and 
+#we run the code always from here, just setting the folder root to the folder we want to work with
+repo_root <- dirname(rstudioapi::getSourceEditorContext()$path)
+
 #Data folders
-folder_calibration <- paste0(folder_root,"/calibration")
+folder_calibration <- paste0(repo_root,"/calibration")
 folder_results<- paste0(folder_root,"/Results_ppm")
 
 

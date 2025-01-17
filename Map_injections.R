@@ -29,7 +29,7 @@ library(tidyverse)
 
 #Import functions of repo 
 repo_root <- dirname(dirname(rstudioapi::getSourceEditorContext()$path))
-files.sources = list.files(path = paste0(folder_root,"/functions"), full.names = T)
+files.sources = list.files(path = paste0(repo_root,"/functions"), full.names = T)
 for (f in files.sources){source(f)}
 
 
