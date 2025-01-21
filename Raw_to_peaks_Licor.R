@@ -16,7 +16,9 @@
 #Usually you will be working on your working directory
 #folder_root <- dirname(rstudioapi::getSourceEditorContext()$path)
 #But you can set the folder in other path
-folder_root <- "/home/jorge/Documentos/Postdoctoral/Onedrive_UB/UB/NaturBPond/GHG/Pond_element_flux/December/Discrete_samples" # You have to make sure this is pointing to the write folder on your local machine
+
+folder_root<- "C:/Users/Miguel/Dropbox/Licor_N2O"
+# folder_root <- "/home/jorge/Documentos/Postdoctoral/Onedrive_UB/UB/NaturBPond/GHG/Pond_element_flux/December/Discrete_samples" # You have to make sure this is pointing to the write folder on your local machine
 
 #Data folders
 folder_raw <- paste0(folder_root,"/Rawdata") #contains unedited files downloaded from licor
@@ -295,7 +297,7 @@ for (i in rawtointegrate){
     #Save baseline statistics of rawfile i 
     write.csv(B,file = paste0(folder_results,"/", "baselines_",gas, "_", i, ".csv"),row.names = F)
     
-    #Save concentrations of injections for rawfile i   
+    #Save areas of injections for rawfile i   
     write.csv(A,file = paste0(folder_results,"/", "integrated_injections_",gas, "_", i, ".csv"),row.names = F)
     
     #Save plots of integrations: use i for naming convention of pdf

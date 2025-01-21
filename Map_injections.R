@@ -12,7 +12,8 @@
 #Usually you will be working on your working directory
 # folder_root <- dirname(rstudioapi::getSourceEditorContext()$path)
 #But you can set the folder in other path
-folder_root <- "/home/jorge/Documentos/Postdoctoral/Onedrive_UB/UB/NaturBPond/GHG/Pond_element_flux/December/Discrete_samples" # You have to make sure this is pointing to the write folder on your local machine
+folder_root<- "C:/Users/Miguel/Dropbox/Licor_N2O"
+# folder_root <- "/home/jorge/Documentos/Postdoctoral/Onedrive_UB/UB/NaturBPond/GHG/Pond_element_flux/December/Discrete_samples" # You have to make sure this is pointing to the write folder on your local machine
 
 #Data folders, 
 folder_raw <- paste0(folder_root,"/Rawdata") #contains unedited files downloaded from licor
@@ -28,7 +29,7 @@ if (!dir.exists(folder_mapinjections)) {
 library(tidyverse)
 
 #Import functions of repo 
-repo_root <- dirname(dirname(rstudioapi::getSourceEditorContext()$path))
+repo_root <- dirname((rstudioapi::getSourceEditorContext()$path))
 files.sources = list.files(path = paste0(repo_root,"/functions"), full.names = T)
 for (f in files.sources){source(f)}
 
