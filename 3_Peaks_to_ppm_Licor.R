@@ -5,6 +5,9 @@
 # ---
 
 #Description: this script uses integrated_injections files produced in the Raw_to_peaks_LicorN2O.R script and calculates ppm for each peak based on the calibration curve and volume injected. It outputs ppm data for each peak and for each sample
+#Clean WD
+rm(list=ls())
+
 
 # ---- Directories ----
 
@@ -42,7 +45,7 @@ integratedtoppm<- gsub(".csv","",gsub("integrated_injections_","",integratedfile
   !gsub(".csv","",gsub("integrated_injections_","",integratedfiles))%in%gsub(".csv","",gsub("^.*ppm_samples_","",ppmfiles))]))#  integrated files "rawcode" without corresponding ppmfiles "rawcode"
   
 #Get calibration curve
-calibration <- read_csv(paste0(folder_calibration, "/Calibration_and_limit_of_detection_2024-12-12.csv"))
+calibration <- read_csv(paste0(folder_calibration, "/Calibration_and_limit_of_detection_2024-12-12.csv"),show_col_types = F)
 
 for (i in integratedtoppm){
   #Take the correct calibration curve for the gas

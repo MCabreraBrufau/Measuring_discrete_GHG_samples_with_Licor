@@ -6,6 +6,9 @@
 
 #Description: This script creates a map_injection csv for every rawdata file. These are stored in the Map_injections folder and will be manually edited to correct label text, adapt time of labels or add labels that were not written in the data at the time of collection. 
 
+#clean WD
+rm(list=ls())
+
 # ---- Directories ----
 
 #Root
