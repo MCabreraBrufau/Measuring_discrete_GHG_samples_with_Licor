@@ -71,7 +71,7 @@ ggplot(S4field_done, aes(x=dayofanalysis, y=cv_N2Oppm, group=dayofanalysis))+
   geom_boxplot()
 
 
-S4field_done %>% filter(dayofanalysis==as.POSIXct("2025-01-22"))%>% 
+S4field_done %>% filter(dayofanalysis==as.POSIXct("2025-01-23"))%>% 
                           ggplot(aes(x=sample, y=cv_N2Oppm))+
   geom_point()+
   geom_label(aes(label=sample))
@@ -94,7 +94,7 @@ message(paste0(round((dim(S2S3S4cores_todo)[1]-dim(S2S3S4cores_done)[1])/50), " 
 
 
 
-#Miscelanea quality check (to re-do propperly adding also air standards to compare to baselines):
+#Miscelanea quality checks (to re-do propperly adding also air standards to compare to baselines):
 
 A %>% 
   filter(!grepl("^S4-", sample)) %>% 
@@ -102,4 +102,26 @@ A %>%
   filter(grepl("^6ppm", sample)) %>% 
   ggplot(aes(x=dayofanalysis, y=N2O_ppm, group = dayofanalysis))+
   geom_boxplot()
+
+
+
+
+
+A %>% 
+  filter(!grepl("^S4-", sample)) %>% 
+  filter(dayofanalysis>=as.POSIXct("2024-11-13")) %>% 
+  filter(grepl("^p", sample)) %>% 
+  mutate(secondseq=abs(parse_number(sample))) %>% 
+  ggplot(aes(x=secondseq, y=N2O_ppm, group = sample))+
+  geom_point()
+
+
+
+
+A %>% 
+  filter(grepl("^S4-", sample)) %>% 
+  filter(dayofanalysis>=as.POSIXct("2025-01-20")) %>% 
+  mutate(subsite=substr(sample,1,8)) %>% 
+  ggplot(aes(x=sample, y=N2O_ppm*273, col = subsite))+
+  geom_point()
 

@@ -78,4 +78,5 @@ for (i in raw_files_withoutmap){
   write.csv(a,file = paste0(folder_mapinjections,"/raw_", gas, "_map_injection_", gsub(".data","",i), ".csv"),row.names = F)
 }
 
-rm(a,i, raw_files,raw_files_withoutmap,maps_done)
+#Clear WP again
+rm(list=ls())
