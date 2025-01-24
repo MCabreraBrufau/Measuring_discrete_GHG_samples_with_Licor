@@ -51,9 +51,9 @@ message(paste0(dim(S4field_toDO)[1]-dim(S4field_done)[1]), " more fieldsamples t
 
 fieldsamplesperday<-S4field_done %>% group_by(dayofanalysis) %>%  summarise(n=n()) %>% ungroup() %>% summarise(mean(n,na.rm = T)) %>% pull() %>% round(.,2)
 
-message(paste0(round((dim(S4field_toDO)[1]-dim(S4field_done)[1])/fieldsamplesperday), " more days of analysis left at current average rithm of ",fieldsamplesperday))
+message(paste0(round((dim(S4field_toDO)[1]-dim(S4field_done)[1])/fieldsamplesperday), " more days of analysis left at current average rhythm of ",fieldsamplesperday))
 
-message(paste0(round((dim(S4field_toDO)[1]-dim(S4field_done)[1])/50), " more days of analysis left at rithm of  50 samples per day"))
+message(paste0(round((dim(S4field_toDO)[1]-dim(S4field_done)[1])/50), " more days of analysis left at rhythm of  50 samples per day"))
 
 #CV statistics of method for samples:
 message(paste0("Average CV of fieldsamples analysed is ",round(mean(S4field_done$cv_N2Oppm)*100,2)," %"))
@@ -88,9 +88,9 @@ message(paste0(dim(S2S3S4cores_todo)[1]-dim(S2S3S4cores_done)[1]), " more coresa
 
 samplesperday<-S2S3S4cores_done %>% group_by(dayofanalysis) %>%  summarise(n=n()) %>% ungroup() %>% summarise(mean(n,na.rm = T)) %>% pull() %>% round(.,2)
 
-message(paste0(round((dim(S2S3S4cores_todo)[1]-dim(S2S3S4cores_done)[1])/samplesperday), " more days of analysis left at current average rithm of ",samplesperday))
+message(paste0(round((dim(S2S3S4cores_todo)[1]-dim(S2S3S4cores_done)[1])/samplesperday), " more days of analysis left at current average rhythm of ",samplesperday))
 
-message(paste0(round((dim(S2S3S4cores_todo)[1]-dim(S2S3S4cores_done)[1])/50), " more days of analysis left at rithm of  50 samples per day"))
+message(paste0(round((dim(S2S3S4cores_todo)[1]-dim(S2S3S4cores_done)[1])/50), " more days of analysis left at rhythm  of  50 samples per day"))
 
 
 
@@ -117,11 +117,55 @@ A %>%
 
 
 
-
 A %>% 
   filter(grepl("^S4-", sample)) %>% 
   filter(dayofanalysis>=as.POSIXct("2025-01-20")) %>% 
   mutate(subsite=substr(sample,1,8)) %>% 
-  ggplot(aes(x=sample, y=N2O_ppm*273, col = subsite))+
-  geom_point()
+  group_by(sample) %>% 
+  summarise(n=n()) %>% 
+  ungroup() %>% 
+  summarise(n=n())
 
+
+
+A %>% 
+  filter(grepl("ptest", sample, ignore.case = T)) %>% 
+  filter(dayofanalysis>=as.POSIXct("2025-01-24")) %>% 
+  separate(peak_id, into = c("sample","ml","injno"),sep = "_") %>% 
+  mutate(seconds=parse_number(str_extract(pattern = "[0-9]{1,2}s",sample))) %>% 
+  ggplot(aes(x=seconds, y=N2O_ppm/6*100, colour = factor(injno)))+
+  geom_point()+
+  geom_abline(intercept = 100,slope = 0)+
+  scale_y_continuous(breaks = seq(100,250,by=10))
+
+A %>% 
+  filter(grepl("ptest", sample, ignore.case = T)) %>% 
+  filter(dayofanalysis>=as.POSIXct("2025-01-24")) %>% 
+  separate(peak_id, into = c("sample","ml","injno"),sep = "_") %>% 
+  mutate(seconds=parse_number(str_extract(pattern = "[0-9]{1,2}s",sample))) %>% 
+  ggplot(aes(x=injno, y=N2O_ppm, colour = factor(seconds)))+
+  geom_point()+
+  geom_line(aes(group=sample))
+
+
+
+A %>% 
+  filter(grepl("6ppm", sample, ignore.case = T)) %>% 
+  # filter(dayofanalysis>=as.POSIXct("2025-01-20")) %>% 
+  separate(peak_id, into = c("sample","ml","injno"),sep = "_") %>% 
+  ggplot(aes(x=factor(dayofanalysis), y=N2O_ppm/6*100, colour = factor(dayofanalysis>=as.POSIXct("2025-01-20"))))+
+  geom_point()+
+  geom_abline(intercept = 100,slope = 0)
+
+
+A %>% 
+  filter(grepl("6ppm", sample, ignore.case = T)) %>% 
+  filter(dayofanalysis>=as.POSIXct("2024-11-13")) %>% 
+  # filter(dayofanalysis>=as.POSIXct("2025-01-20")) %>% 
+  separate(peak_id, into = c("sample","ml","injno"),sep = "_") %>% 
+  mutate(after20jan=dayofanalysis>=as.POSIXct("2025-01-20")) %>% 
+  ggplot()+
+  geom_boxplot(aes(x=dayofanalysis, y=N2O_ppm/6*100, colour = after20jan,group=dayofanalysis))+
+  geom_jitter(aes(x=dayofanalysis, y=N2O_ppm/6*100, colour = after20jan))+
+  geom_abline(intercept = 100,slope = 0)+
+  scale_y_continuous(breaks = seq(80,120,by=5))
