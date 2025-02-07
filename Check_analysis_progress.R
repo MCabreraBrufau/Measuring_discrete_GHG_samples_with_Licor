@@ -59,6 +59,13 @@ message(paste0(round((dim(S4field_toDO)[1]-dim(S4field_done)[1])/50), " more day
 message(paste0("Average CV of fieldsamples analysed is ",round(mean(S4field_done$cv_N2Oppm)*100,2)," %"))
 
 
+#Which samples are missing N2O data?
+S4field_missing <-S4field_toDO[!S4field_toDO$exetainer_ID%in%S4field_done$sample,]
+
+#Which N2O data does not match fieldsamples codes?
+S4field_missmatch <-S4field_done[!S4field_done$sample%in%S4field_toDO$exetainer_ID,]
+
+
 #General statistics: most fieldsamples very close to atmospheric composition
 ggplot(S4field_done, aes(y=avg_N2Oppm))+
   geom_histogram()+
@@ -169,3 +176,19 @@ A %>%
   geom_jitter(aes(x=dayofanalysis, y=N2O_ppm/6*100, colour = after20jan))+
   geom_abline(intercept = 100,slope = 0)+
   scale_y_continuous(breaks = seq(80,120,by=5))
+
+
+
+#Miscelanea
+ri_samplesdone<- A %>% 
+  filter(grepl("RI",sample)) %>% 
+  group_by(sample) %>% 
+  summarise(avg_ppm=mean(N2O_ppm, na.rm = T))
+
+ri_samplestodo<- S4field_toDO %>% 
+  filter(grepl("RI",exetainer_ID))
+
+
+ri_samplesdone$sample%in%ri_samplestodo$exetainer_ID
+
+ri_samplestodo$exetainer_ID[ri_samplestodo$exetainer_ID%in%ri_samplesdone$sample]

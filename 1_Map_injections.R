@@ -72,7 +72,7 @@ for (i in raw_files_withoutmap){
     arrange(Tstart) %>% 
     mutate(rawfile=i) %>% 
     select(date, Tstart, Tend, label, rawfile) %>% 
-    mutate(Tstart_correct=NA,	Tend_correct=NA,	label_correct=NA)#Add empty columns to manually correct the data
+    mutate(Tstart_correct=NA,	Tend_correct=NA,	label_correct=NA, firstlicor_TG10_or_TG20=NA)#Add empty columns to manually correct the data
   
   #Estaría bien añadir una marca al nombre del archivo para saber si es de N2O o de CO2 aunque en realidad ya estaría con el nombre del rawfile (TG10 o TG20)
   write.csv(a,file = paste0(folder_mapinjections,"/raw_", gas, "_map_injection_", gsub(".data","",i), ".csv"),row.names = F)

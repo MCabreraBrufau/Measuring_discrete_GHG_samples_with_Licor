@@ -4,10 +4,13 @@
 # This script has been modified from https://github.com/MCabreraBrufau/Licor_N2O_scripts to identify and integrate peak not only for N2O but also for CO2 and CH4
 # ---
 
-#Before to run this script, you must run "Map_injections.R" script and create the "corrected_XXX_mapsinjections...." file
+#Before to run this script, you must run "Map_injections.R" script and create the "corrected_XXX_map_injection..." file. You can copy directly the Tstart, Tend and label from the raw_mapinjection OR edit if you have something to change. 
+#IMPORTANT: With the new updated processing script you also need to specify in "corrected_XXX_map_injection..."which Licor was connected upstream (i.e. first in recieving the injected sample): options are "TG20" (for LicorN2O first) OR "TG10" (for LicorCH4&CO2 first).This info is used to set the width of integration windows according to the upstream-downstream position of the Licors. 
 
 
-#Description: this script takes raw-files from Li-COR 7820 and Li-COR 7810 containing discrete injections, corrected injection_sequences (with label, start and stop) and calculates integrated peaks along with signal-to-noise ratio for each injection. It also generates inspection plots (baseline correction & integration) and stores the results in csv format. It also extracts the baseline data for ambient lab air and zero-Air from cylinder.
+#Description: this script takes raw-files from Li-COR 7820 and Li-COR 7810 containing discrete injections, corrected injection_sequences (with label, start and stop) and calculates integrated peaks along with signal-to-noise ratio for each injection. It also generates inspection plots (baseline correction & integration) and stores the results in csv format. It also extracts the baseline data for ambient lab air and zero-Air from cylinder. 
+
+
 #Clean WD
 rm(list=ls())
 
@@ -154,6 +157,8 @@ for (i in rawtointegrate){
       #Unixend, Tend_correct from mapinj in unix time format
       unixend<- as.numeric(as.POSIXct(paste(mapinj[mapinj$label_correct==inj,]$date,mapinj[mapinj$label_correct==inj,]$Tend_correct), tz = "UTC"))
       
+      #FirstLicor, TG10 or TG20 from mapinj 
+      firstlicor<- mapinj[mapinj$label_correct==inj,]$firstlicor_TG10_or_TG20
       
       #Subset data from injection sequence inj 
       inj_data<- raw_data[between(raw_data$unixtime, unixstart,unixend),]  
@@ -214,16 +219,30 @@ for (i in rawtointegrate){
             #This results in the spread of the value of "peak_id" of the local maximum to secondsbefore_max seconds before and to secondsafter_max seconds after each identified maximum. 
             secondsbefore_max<- 4
             #Aquí podría unificar CO2 y CH4 en 15, 20 o 18 segundos (el mismo para ambos) y otro para el N2O = 7
-            if(gas == "N2O"){
-              secondsafter_max<- 7
+            #If first licor is TG20  (N2O licor), set narrow integration windows for N2O and wider for CO2 and CH4
+            if(firstlicor =="TG20"){
+              if(gas == "N2O"){
+                secondsafter_max<- 7
+              }
+              if(gas == "CO2"){
+                secondsafter_max<- 15
+              }
+              if(gas == "CH4"){
+                secondsafter_max<- 20
+              }
             }
-            if(gas == "CO2"){
-              secondsafter_max<- 15
+            #If first licor is TG10  (CO2&CH4 licor), set narrow integration windows for CO2 and CH4 and wider N2O
+            if(firstlicor =="TG10"){
+              if(gas == "N2O"){
+                secondsafter_max<- 20
+              }
+              if(gas == "CO2"){
+                secondsafter_max<- 7
+              }
+              if(gas == "CH4"){
+                secondsafter_max<- 7
+              }
             }
-            if(gas == "CH4"){
-              secondsafter_max<- 20
-            }
-            
             # Check for peak_id in the window:
             surrounding_codes <- peak_id[seq(max(1, idx - secondsafter_max), min(n(), idx + secondsbefore_max))]  
             
