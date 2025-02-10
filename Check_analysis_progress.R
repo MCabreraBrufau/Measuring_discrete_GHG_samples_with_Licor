@@ -36,7 +36,7 @@ rm(a,i)
 
 S4field_done<- A %>% 
   filter(grepl(pattern="^S4-", sample)) %>% 
-  filter(!grepl(pattern="t|T", sample)) %>% #avoid including cores here
+  filter(!grepl(pattern="i|f", sample)) %>% #avoid including cores here
   group_by(dayofanalysis, sample) %>% 
   summarise(avg_N2Oppm=mean(N2O_ppm, na.rm=T),
             sd_N2Oppm=sd(N2O_ppm, na.rm=T),
@@ -86,8 +86,15 @@ S4field_done %>% filter(dayofanalysis==as.POSIXct("2025-01-23"))%>%
 
 #Progress cores:
 
-S2S3S4cores_todo<- data.frame(n=rep(NA, 6*6*6*3))
-S2S3S4cores_done<- data.frame()
+S2S3S4cores_todo<- data.frame(n=rep(NA, 3*6*6*9)) #3seasons x 6sites x 6subsitesx 9cores(3t0 + 6tf)
+S2S3S4cores_done<- A %>% 
+  filter(grepl(pattern="^S", sample)) %>%
+  filter(grepl(pattern="i|f", sample)) %>% #avoid including cores here
+  group_by(dayofanalysis, sample) %>% 
+  summarise(avg_N2Oppm=mean(N2O_ppm, na.rm=T),
+            sd_N2Oppm=sd(N2O_ppm, na.rm=T),
+            cv_N2Oppm=sd_N2Oppm/avg_N2Oppm,
+            n_N2Oppm=sum(!is.na(N2O_ppm)))
 
 message(paste0(dim(S2S3S4cores_done)[1], " coresamples analysed out of ", dim(S2S3S4cores_todo)[1], " coresamples taken (",round(dim(S2S3S4cores_done)[1]/dim(S2S3S4cores_todo)[1]*100,2)," % DONE)" ))
 
