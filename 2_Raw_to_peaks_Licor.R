@@ -281,11 +281,11 @@ for (i in rawtointegrate){
         ###____Create integration plots#####
         p<-ggplot()+
           geom_point(data=subset(inj_data,!is.na(peak_id)), aes(x=as.POSIXct(unixtime),y=gas_bc,col="2_peaks"))+
-          geom_point(data = integrated, aes(x=as.POSIXct(unixtime_ofmax), y=peaksum, col="3_integrated"))+
-          geom_line(data = inj_data, aes(x=as.POSIXct(unixtime), y=gas_bc, col="1_base-corrected"))+
-          geom_line(data = inj_data, aes(x=as.POSIXct(unixtime), y=!!sym(gas), col="0_raw"), linetype = 2)+
+          geom_point(data = integrated, aes(x=as.POSIXct(unixtime_ofmax,tz = "utc"), y=peaksum, col="3_integrated"))+
+          geom_line(data = inj_data, aes(x=as.POSIXct(unixtime,tz = "utc"), y=gas_bc, col="1_base-corrected"))+
+          geom_line(data = inj_data, aes(x=as.POSIXct(unixtime,tz = "utc"), y=!!sym(gas), col="0_raw"), linetype = 2)+
           scale_y_continuous(name=paste("signal", gas))+
-          scale_x_datetime(name="Licor time")+
+          scale_x_datetime(name="Licor time (UTC)",timezone = "utc")+
           labs(col="")+
           ggtitle(paste0(dayofanalysis,", injection: ",inj))+
           theme_bw()+

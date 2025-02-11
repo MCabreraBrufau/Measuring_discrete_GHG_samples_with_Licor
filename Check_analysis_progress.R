@@ -104,8 +104,9 @@ samplesperday<-S2S3S4cores_done %>% group_by(dayofanalysis) %>%  summarise(n=n()
 
 message(paste0(round((dim(S2S3S4cores_todo)[1]-dim(S2S3S4cores_done)[1])/samplesperday), " more days of analysis left at current average rhythm of ",samplesperday))
 
-message(paste0(round((dim(S2S3S4cores_todo)[1]-dim(S2S3S4cores_done)[1])/50), " more days of analysis left at rhythm  of  50 samples per day"))
 
+#CV statistics of method for core samples:
+message(paste0("Average CV of core samples analysed is ",round(mean(S2S3S4cores_done$cv_N2Oppm)*100,2)," % for N2O"))
 
 
 #Miscelanea quality checks (to re-do propperly adding also air standards to compare to baselines):
