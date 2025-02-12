@@ -1,6 +1,5 @@
 #Progress LiCOR N2O
 
-
 #This script calculates the progress of analysis of Restore4Cs samples by crossreferencing samplelist from fieldsheets and ppm_sample_N2O...csv files. Aditionally some descriptive statistics.
 
 #Clean WD
@@ -86,10 +85,23 @@ S4field_done %>% filter(dayofanalysis==as.POSIXct("2025-01-23"))%>%
 
 #Progress cores:
 
-S2S3S4cores_todo<- data.frame(n=rep(NA, 3*6*6*9)) #3seasons x 6sites x 6subsitesx 9cores(3t0 + 6tf)
+# S2S3S4cores_todo<- data.frame(n=rep(NA, 3*6*6*9)) #3seasons x 6sites x 6subsitesx 9cores(3t0 + 6tf)
+S2S3S4cores_todo<- read_xlsx(path = paste0(folder_samplelist, "Samplelist exetainers_RESTORE4Cs_February2025.xlsx"),sheet = "cores") %>% 
+  filter(!grepl("UVEG",box)) %>% #Remove UVEG box (duplicated cores) 
+  filter(!grepl("--",remark)) %>% #remove non-existing samples
+  filter(!grepl("2i|4i|6i", remark))
+
+#Is there any duplicate exetainer to do?
+S2S3S4cores_todo%>%
+  select(remark) %>% 
+  group_by(remark) %>% 
+  summarise(n=n()) %>% 
+  filter(n!=1)
+
+
 S2S3S4cores_done<- A %>% 
-  filter(grepl(pattern="^S", sample)) %>%
-  filter(grepl(pattern="i|f", sample)) %>% #avoid including cores here
+  filter(grepl(pattern="^S", sample)) %>% #keep only R4C samples
+  filter(grepl(pattern="i|f", sample)) %>% #keep only cores
   group_by(dayofanalysis, sample) %>% 
   summarise(avg_N2Oppm=mean(N2O_ppm, na.rm=T),
             sd_N2Oppm=sd(N2O_ppm, na.rm=T),
@@ -106,7 +118,9 @@ message(paste0(round((dim(S2S3S4cores_todo)[1]-dim(S2S3S4cores_done)[1])/samples
 
 
 #CV statistics of method for core samples:
-message(paste0("Average CV of core samples analysed is ",round(mean(S2S3S4cores_done$cv_N2Oppm)*100,2)," % for N2O"))
+message(paste0("Average CV of core samples analysed is ",round(mean(S2S3S4cores_done$cv_N2Oppm, na.rm = T)*100,2)," % for N2O"))
+
+
 
 
 #Miscelanea quality checks (to re-do propperly adding also air standards to compare to baselines):
