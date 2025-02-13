@@ -77,12 +77,6 @@ ggplot(S4field_done, aes(x=dayofanalysis, y=cv_N2Oppm, group=dayofanalysis))+
   geom_boxplot()
 
 
-S4field_done %>% filter(dayofanalysis==as.POSIXct("2025-01-23"))%>% 
-                          ggplot(aes(x=sample, y=cv_N2Oppm))+
-  geom_point()+
-  geom_label(aes(label=sample))
-
-
 #Progress cores:
 
 # S2S3S4cores_todo<- data.frame(n=rep(NA, 3*6*6*9)) #3seasons x 6sites x 6subsitesx 9cores(3t0 + 6tf)
@@ -129,8 +123,9 @@ A %>%
   filter(!grepl("^S4-", sample)) %>% 
   filter(dayofanalysis>=as.POSIXct("2024-11-13")) %>% 
   filter(grepl("^6ppm", sample)) %>% 
-  ggplot(aes(x=dayofanalysis, y=N2O_ppm, group = dayofanalysis))+
-  geom_boxplot()
+  ggplot(aes(x=dayofanalysis, y=(N2O_ppm-6)/6*100, group = dayofanalysis))+
+  geom_boxplot()+
+  scale_y_continuous(name = "Relative deivation from standard (%)")
 
 
 

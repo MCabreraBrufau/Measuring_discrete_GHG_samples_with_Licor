@@ -98,7 +98,7 @@ test %>%
 #Inspect samples with very high cv and clean individual peaks.
 test %>% 
   filter(gas=="n2o") %>% 
-  filter(dayofanalysis=="2025-02-07") %>% 
+  # filter(dayofanalysis=="2025-02-07") %>% 
   filter(!peak_id%in%n2o_peakout) %>% 
   filter(!dayofanalysis%in%n2o_daysinspected) %>% 
   group_by(sample, gas) %>% 
@@ -113,14 +113,16 @@ test %>%
 #N2O data already inspected (per day of injection)
 n2o_peakout<- c("S2-CU-A2-2f_0.1_1","S2-CU-A2-2f_0.1_3","S2-CU-A2-2f_0.1_5", "S2-CU-A1-5f_0.8_1", #2025-02-11
                 "S3-CU-R1-2f_0.4_1","S3-CU-A1-6f_0.8_3","S3-CU-P1-1f_0.8_2","S4-DU-A2-2f_0.8_2","S4-DU-A2-3f_0.8_2", #2025-02-07
-                "S3-DU-A1-1f_0.8_1","S3-DU-A2-5f_0.8_1")#2025-02-10
-n2o_daysinspected<- c("2025-02-11","2025-02-10","2025-02-07")
+                "S3-DU-A1-1f_0.8_1","S3-DU-A2-5f_0.8_1",#2025-02-10
+                "S2-CA-A2-4f_0.8_1","S2-CA-R2-5f_0.8_2","S2-DA-P2-1i_1_2")# 2025-02-12
+
+n2o_daysinspected<- c("2025-02-11","2025-02-10","2025-02-07","2025-02-12")
 
 #CH4 inspection: 
 #Inspect samples with very high cv and clean individual peaks.
 test %>% 
   filter(gas=="ch4") %>% 
-  filter(dayofanalysis=="2025-02-07") %>% 
+  filter(dayofanalysis=="2025-02-12") %>% 
   filter(!peak_id%in%ch4_peakout) %>% 
   filter(!dayofanalysis%in%ch4_daysinspected) %>% 
   group_by(sample, gas) %>% 
@@ -135,8 +137,10 @@ test %>%
 #CH4 data already inspected (per day of injection)
 ch4_peakout<- c("S2-CU-A1-5f_0.8_1",#2025-02-11
                 "S3-CU-A1-6f_0.8_3","S3-CU-A2-5f_0.8_1","S3-CU-P1-1f_0.8_2","S3-CU-R1-3f_0.8_1","S3-CU-R1-4f_0.8_1","S4-DU-A2-2f_0.8_2","S4-DU-A2-6f_0.8_4",  #2025-02-07
-                "S3-DU-A1-1f_0.8_1","S3-DU-A2-5f_0.8_1")#2025-02-10
-ch4_daysinspected<- c("2025-02-11","2025-02-10","2025-02-07")
+                "S3-DU-A1-1f_0.8_1","S3-DU-A2-5f_0.8_1",#2025-02-10
+                "S2-CA-A1-5f_0.8_1","S2-DA-P2-1i_1_2")# 2025-02-12
+
+ch4_daysinspected<- c("2025-02-11","2025-02-10","2025-02-07","2025-02-12")
 
 
 
@@ -146,7 +150,7 @@ test %>%
   filter(gas=="co2") %>% 
   filter(!peak_id%in%co2_peakout) %>% 
   filter(!dayofanalysis%in%co2_daysinspected) %>% 
-  filter(dayofanalysis=="2025-02-07") %>% 
+  filter(dayofanalysis=="2025-02-12") %>% 
   group_by(sample, gas) %>% 
   mutate(avg_ppm=mean(ppm, na.rm=T),
          sd_ppm= sd(ppm, na.rm=T),
@@ -160,9 +164,10 @@ test %>%
 #CO2 data already inspected (per day of injection)
 co2_peakout<- c("S2-CU-A1-5f_0.8_1",#2025-02-11
                 "S3-DU-A1-1f_0.8_1","S3-DU-A2-5f_0.8_1",#2025-02-10
-                "S3-CU-A1-6f_0.8_3","S3-CU-P1-1f_0.8_2","S3-CU-R1-2f_0.4_1","S3-CU-R1-4f_0.8_1","S4-DU-A2-2f_0.8_2","S4-DU-P1-1f_0.8_4") #2025-02-07
+                "S3-CU-A1-6f_0.8_3","S3-CU-P1-1f_0.8_2","S3-CU-R1-2f_0.4_1","S3-CU-R1-4f_0.8_1","S4-DU-A2-2f_0.8_2","S4-DU-P1-1f_0.8_4",#2025-02-07
+                "S2-CA-R1-6f_0.8_3","S2-DA-P2-1i_1_2","S2-DA-R1-5f_0.4_1")# 2025-02-12
 
-co2_daysinspected<- c("2025-02-11","2025-02-10","2025-02-07")
+co2_daysinspected<- c("2025-02-11","2025-02-10","2025-02-07","2025-02-12")
 
 
 #Create cores clean with all injections

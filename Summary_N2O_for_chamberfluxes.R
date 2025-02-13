@@ -165,20 +165,26 @@ A %>%
 #Do not propagate errors, to calculate LOD for fluxes we will use the cv of method for all + incubation duration
 
 
-#Create database 1 atm per subsite
+#Create database 1 atm per subsite with cv and n to calculate significance of flux afterwards. 
 atm_avg<- n2o_atmchambers_good %>% 
   filter(exe_type=="atmosphere") %>% 
   group_by(subsite_ID) %>% 
-  summarise(atm_avgN2O=mean(N2O_ppm, na.rm=T))
+  summarise(atm_avg=mean(N2O_ppm, na.rm=T),
+            atm_cv=sd(N2O_ppm, na.rm = T)/atm_avg,
+            atm_n=sum(!is.na(N2O_ppm)))
 
-#Create table with n2o data for flux calculation
+#Create table with n2o data for flux calculation keep cv and n of samples to calculate significance
 n2o_summary_atmchambers<- n2o_atmchambers_good %>% 
   merge.data.frame(atm_avg, by="subsite_ID",all = T) %>% 
   filter(exe_type=="air trapped") %>% 
   rename(lightcondition=`transparent or dark`, strata=Strata) %>% 
   group_by(campaign,pilot_site, subsite, subsite_ID, plot_ID, strata,lightcondition, comment, sample) %>% 
-  summarise(sample_N2O=mean(N2O_ppm, na.rm=T),
-            atm_N2O=mean(atm_avgN2O, na.rm=T)) %>% 
+  summarise(sample_avgN2Oppm=mean(N2O_ppm, na.rm=T),
+            sample_cv=sd(N2O_ppm, na.rm=T)/sample_avgN2Oppm,
+            sample_n= sum(!is.na(N2O_ppm)), 
+            atm_avgN2Oppm=mean(atm_avg, na.rm=T), #keep the atm data by doing the mean
+            atm_cv=mean(atm_cv, na.rm=T),#keep the atm data by doing the mean
+            atm_n=mean(atm_n,na.rm=T)) %>% #keep the atm data by doing the mean
   separate(sample, into = c("d1","d2","d3","exenum"),sep="-", remove=F) %>% 
   select(-c(d1,d2,d3)) %>% 
   arrange(subsite_ID, plot_ID, exenum) %>% 
@@ -188,26 +194,15 @@ n2o_summary_atmchambers<- n2o_atmchambers_good %>%
   group_by(subsite_ID, plot_ID) %>% 
   mutate(incubationOrder=row_number()) %>% #add incubationOrder to filter out 2nd incubations in same plot (usually dark incubations after transparent) for which we cannot be sure if the chamber was ventilated or not. 
   ungroup() %>% 
-  mutate(deltaN2O=sample_N2O-atm_N2O) %>% 
+  # mutate(deltaN2O=sample_N2O-atm_N2O) %>% 
   rename(exetainercode=sample, UniqueID_notime=UniqueID, plotincubation=incubationOrder,
-         tf_N2Oppm=sample_N2O, atm_N2Oppm=atm_N2O, delta_N2Oppm=deltaN2O) %>% #Rename for clarity
-  select(UniqueID_notime, exetainercode, exenum, plotincubation, atm_N2Oppm,tf_N2Oppm, delta_N2Oppm) 
+         tf_avgN2Oppm=sample_avgN2Oppm, tf_cv=sample_cv, tf_n=sample_n, #Rename for clarity
+         atm_avgN2Oppm=atm_avgN2Oppm, atm_cv=atm_cv, atm_n=atm_n) %>% #Rename for clarity
+  select(UniqueID_notime, exetainercode, exenum, plotincubation, tf_avgN2Oppm,tf_cv, tf_n,atm_avgN2Oppm, atm_cv,atm_n) 
 
 
 #Save summary for flux calculation: with UniqueID_notime to join with chamber data. 
 write.csv(n2o_summary_atmchambers, file = paste0(folder_output, "S4_restore4cs_N2Oppm_atmchambers.csv"),row.names = F)
-
-
-
-#What proportion of fluxes can we consider significant (i.e. delta > 3% of Tf measure)
-n2o_summary_atmchambers%>% 
-  mutate(uncertaintyN2O=0.03*tf_N2Oppm,
-         sig_delta=abs(delta_N2Oppm)>uncertaintyN2O) %>%  #Add uncertainty of 3% of Tf (if we are picky it should also incorporate another 3% from atm concetration) 
-  select(sig_delta) %>% 
-  summarise(n_sigdelta=sum(sig_delta),
-            n_nonsigdelta=sum(!sig_delta),
-            prop_sigdelta=sum(sig_delta)/n()*100)
-
 
 
 
