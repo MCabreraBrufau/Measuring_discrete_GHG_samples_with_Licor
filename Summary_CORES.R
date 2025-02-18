@@ -92,6 +92,7 @@ test %>%
 test %>% 
   ggplot(aes(x=dayofanalysis, y=cv_ppm))+
   geom_point()+
+  scale_y_continuous(limits = c(0,0.2))+
   facet_wrap(~gas, scales="free")
 
 #N2O inspection: 
@@ -114,15 +115,19 @@ test %>%
 n2o_peakout<- c("S2-CU-A2-2f_0.1_1","S2-CU-A2-2f_0.1_3","S2-CU-A2-2f_0.1_5", "S2-CU-A1-5f_0.8_1", #2025-02-11
                 "S3-CU-R1-2f_0.4_1","S3-CU-A1-6f_0.8_3","S3-CU-P1-1f_0.8_2","S4-DU-A2-2f_0.8_2","S4-DU-A2-3f_0.8_2", #2025-02-07
                 "S3-DU-A1-1f_0.8_1","S3-DU-A2-5f_0.8_1",#2025-02-10
-                "S2-CA-A2-4f_0.8_1","S2-CA-R2-5f_0.8_2","S2-DA-P2-1i_1_2")# 2025-02-12
+                "S2-CA-A2-4f_0.8_1","S2-CA-R2-5f_0.8_2","S2-DA-P2-1i_1_2",# 2025-02-12
+                #2025-02-13 N2O all good
+                "S2-RI-R1-5i_1_2")#2025-02-14
+#2025-02-17 all good
 
-n2o_daysinspected<- c("2025-02-11","2025-02-10","2025-02-07","2025-02-12")
+
+n2o_daysinspected<- c("2025-02-11","2025-02-10","2025-02-07","2025-02-12","2025-02-13","2025-02-14","2025-02-17")
 
 #CH4 inspection: 
 #Inspect samples with very high cv and clean individual peaks.
 test %>% 
   filter(gas=="ch4") %>% 
-  filter(dayofanalysis=="2025-02-12") %>% 
+  # filter(dayofanalysis=="2025-02-12") %>% 
   filter(!peak_id%in%ch4_peakout) %>% 
   filter(!dayofanalysis%in%ch4_daysinspected) %>% 
   group_by(sample, gas) %>% 
@@ -138,9 +143,12 @@ test %>%
 ch4_peakout<- c("S2-CU-A1-5f_0.8_1",#2025-02-11
                 "S3-CU-A1-6f_0.8_3","S3-CU-A2-5f_0.8_1","S3-CU-P1-1f_0.8_2","S3-CU-R1-3f_0.8_1","S3-CU-R1-4f_0.8_1","S4-DU-A2-2f_0.8_2","S4-DU-A2-6f_0.8_4",  #2025-02-07
                 "S3-DU-A1-1f_0.8_1","S3-DU-A2-5f_0.8_1",#2025-02-10
-                "S2-CA-A1-5f_0.8_1","S2-DA-P2-1i_1_2")# 2025-02-12
+                "S2-CA-A1-5f_0.8_1","S2-DA-P2-1i_1_2",# 2025-02-12
+                "S2-DA-A1-1i_1_3","S2-DU-A1-6f_0.8_1",#2025-02-13
+                "S2-RI-R1-5i_1_2")#2025-02-14
+#2025-02-17 all good
 
-ch4_daysinspected<- c("2025-02-11","2025-02-10","2025-02-07","2025-02-12")
+ch4_daysinspected<- c("2025-02-11","2025-02-10","2025-02-07","2025-02-12","2025-02-13","2025-02-14", "2025-02-17")
 
 
 
@@ -150,7 +158,7 @@ test %>%
   filter(gas=="co2") %>% 
   filter(!peak_id%in%co2_peakout) %>% 
   filter(!dayofanalysis%in%co2_daysinspected) %>% 
-  filter(dayofanalysis=="2025-02-12") %>% 
+  # filter(dayofanalysis=="2025-02-12") %>% 
   group_by(sample, gas) %>% 
   mutate(avg_ppm=mean(ppm, na.rm=T),
          sd_ppm= sd(ppm, na.rm=T),
@@ -161,13 +169,17 @@ test %>%
   geom_point()+
   geom_label(aes(label=peak_id))
 
+#CO2 of 2025-02-17 to be decided (improve baseline-correction method)
+
 #CO2 data already inspected (per day of injection)
 co2_peakout<- c("S2-CU-A1-5f_0.8_1",#2025-02-11
                 "S3-DU-A1-1f_0.8_1","S3-DU-A2-5f_0.8_1",#2025-02-10
                 "S3-CU-A1-6f_0.8_3","S3-CU-P1-1f_0.8_2","S3-CU-R1-2f_0.4_1","S3-CU-R1-4f_0.8_1","S4-DU-A2-2f_0.8_2","S4-DU-P1-1f_0.8_4",#2025-02-07
-                "S2-CA-R1-6f_0.8_3","S2-DA-P2-1i_1_2","S2-DA-R1-5f_0.4_1")# 2025-02-12
+                "S2-CA-R1-6f_0.8_3","S2-DA-P2-1i_1_2","S2-DA-R1-5f_0.4_1",# 2025-02-12
+                "S2-DU-R2-1i_1_3",#2025-02-13
+                "S2-DA-A2-4f_0.8_3","S2-RI-P2-1f_0.8_3", "S2-RI-R1-5i_1_2")#2025-02-14
 
-co2_daysinspected<- c("2025-02-11","2025-02-10","2025-02-07","2025-02-12")
+co2_daysinspected<- c("2025-02-11","2025-02-10","2025-02-07","2025-02-12","2025-02-13","2025-02-14")
 
 
 #Create cores clean with all injections
@@ -216,7 +228,8 @@ cores_clean_all %>%
   # filter(site=="DA") %>% 
   ggplot(aes(x=time, y=ppm,col=season))+
   geom_point()+
-  facet_grid(site~subsite, scales="free")
+  facet_grid(site~subsite, scales="free")+
+  ggtitle("N2O (ppm)")
 
 #CO2
 #Up to 200250211, intial cores very homogeneous, average of t0 cores is appropiate
@@ -231,8 +244,8 @@ cores_clean_all %>%
   ggplot(aes(x=time, y=ppm,col=season))+
   geom_point()+
   # facet_grid(subsite~site, scales="free")
-  facet_grid(site~subsite, scales="free")
-
+  facet_grid(site~subsite, scales="free")+
+  ggtitle("CO2 (ppm)")
 
 #CH4
 #Up to 200250211 inspected, initial cores very homogeneous, average of t0 cores is appropriate for all samplings except for: 
@@ -250,12 +263,13 @@ cores_clean_all %>%
   mutate(sampling=paste(season,site,subsite,sep = "-")) %>% 
   # filter(site=="DU") %>% 
   # filter(season=="S3") %>%
-  filter(sampling==unique(.$sampling)[27]) %>%
+  # filter(sampling==unique(.$sampling)[27]) %>%
   ggplot(aes(x=time, y=ppm,col=season))+
   geom_point()+
   # scale_y_continuous(limits = c(0,10))+
   # facet_grid(subsite~site, scales="free")
-  facet_grid(site~subsite, scales="free")
+  facet_grid(site~subsite, scales="free")+
+  ggtitle("CO2 (ppm)")
 
 #s3-cu-A1, A2, P2, R1, R2 OK
 #S4-DU: all subsites OK

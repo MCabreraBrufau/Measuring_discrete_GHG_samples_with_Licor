@@ -80,7 +80,7 @@ ggplot(S4field_done, aes(x=dayofanalysis, y=cv_N2Oppm, group=dayofanalysis))+
 #Progress cores:
 
 # S2S3S4cores_todo<- data.frame(n=rep(NA, 3*6*6*9)) #3seasons x 6sites x 6subsitesx 9cores(3t0 + 6tf)
-S2S3S4cores_todo<- read_xlsx(path = paste0(folder_samplelist, "Samplelist exetainers_RESTORE4Cs_February2025.xlsx"),sheet = "cores") %>% 
+S2S3S4cores_todo<- read_xlsx(path = paste0(folder_samplelist, "Samplelist exetainers_RESTORE4Cs_February2025_rformat.xlsx"),sheet = "cores") %>% 
   filter(!grepl("UVEG",box)) %>% #Remove UVEG box (duplicated cores) 
   filter(!grepl("--",remark)) %>% #remove non-existing samples
   filter(!grepl("2i|4i|6i", remark))
@@ -108,12 +108,43 @@ message(paste0(dim(S2S3S4cores_todo)[1]-dim(S2S3S4cores_done)[1]), " more coresa
 
 samplesperday<-S2S3S4cores_done %>% group_by(dayofanalysis) %>%  summarise(n=n()) %>% ungroup() %>% summarise(mean(n,na.rm = T)) %>% pull() %>% round(.,2)
 
-message(paste0(round((dim(S2S3S4cores_todo)[1]-dim(S2S3S4cores_done)[1])/samplesperday), " more days of analysis left at current average rhythm of ",samplesperday))
+message(paste0(round((dim(S2S3S4cores_todo)[1]-dim(S2S3S4cores_done)[1])/samplesperday,1), " more days of analysis left at current average rhythm of ",samplesperday))
 
 
 #CV statistics of method for core samples:
 message(paste0("Average CV of core samples analysed is ",round(mean(S2S3S4cores_done$cv_N2Oppm, na.rm = T)*100,2)," % for N2O"))
 
+
+
+
+#Check CO2 variability: 
+
+
+resultppmfiles<-list.files(folder_resuts, pattern = "^ppm_samples_CO2", recursive = T, full.names = T)
+
+for(i in resultppmfiles){
+  
+  a<- read_csv(i,show_col_types = F)
+  
+  if(i==resultppmfiles[1]){A<- a}else {A<- rbind(A,a)}
+}
+rm(a,i)
+
+
+all_co2<- A %>% 
+  # filter(grepl(pattern="^S4-", sample)) %>% 
+  # filter(!grepl(pattern="i|f", sample)) %>% #avoid including cores here
+  group_by(dayofanalysis, sample) %>% 
+  summarise(avg_CO2ppm=mean(CO2_ppm, na.rm=T),
+            sd_CO2ppm=sd(CO2_ppm, na.rm=T),
+            cv_CO2=sd_CO2ppm/avg_CO2ppm,
+            n_Co2=sum(!is.na(CO2_ppm)))
+
+
+
+ggplot(all_co2, aes(x=dayofanalysis, y=cv_CO2))+
+  geom_point()+
+  geom_boxplot(aes(group=dayofanalysis))
 
 
 
