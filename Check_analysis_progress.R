@@ -29,11 +29,11 @@ for(i in resultppmfiles){
   
   a<- read_csv(i,show_col_types = F)
   
-  if(i==resultppmfiles[1]){A<- a}else {A<- rbind(A,a)}
+  if(i==resultppmfiles[1]){all_n2o<- a}else {all_n2o<- rbind(all_n2o,a)}
 }
 rm(a,i)
 
-S4field_done<- A %>% 
+S4field_done<- all_n2o %>% 
   filter(grepl(pattern="^S4-", sample)) %>% 
   filter(!grepl(pattern="i|f", sample)) %>% #avoid including cores here
   group_by(dayofanalysis, sample) %>% 
@@ -93,7 +93,7 @@ S2S3S4cores_todo%>%
   filter(n!=1)
 
 
-S2S3S4cores_done<- A %>% 
+S2S3S4cores_done<- all_n2o %>% 
   filter(grepl(pattern="^S", sample)) %>% #keep only R4C samples
   filter(grepl(pattern="i|f", sample)) %>% #keep only cores
   group_by(dayofanalysis, sample) %>% 
@@ -116,7 +116,6 @@ message(paste0("Average CV of core samples analysed is ",round(mean(S2S3S4cores_
 
 
 
-
 #Check CO2 variability: 
 
 
@@ -126,12 +125,12 @@ for(i in resultppmfiles){
   
   a<- read_csv(i,show_col_types = F)
   
-  if(i==resultppmfiles[1]){A<- a}else {A<- rbind(A,a)}
+  if(i==resultppmfiles[1]){all_co2<- a}else {all_co2<- rbind(all_co2,a)}
 }
 rm(a,i)
 
 
-all_co2<- A %>% 
+sumary_co2<- all_co2 %>% 
   # filter(grepl(pattern="^S4-", sample)) %>% 
   # filter(!grepl(pattern="i|f", sample)) %>% #avoid including cores here
   group_by(dayofanalysis, sample) %>% 
@@ -142,15 +141,25 @@ all_co2<- A %>%
 
 
 
-ggplot(all_co2, aes(x=dayofanalysis, y=cv_CO2))+
+ggplot(sumary_co2, aes(x=dayofanalysis, y=cv_CO2))+
   geom_point()+
   geom_boxplot(aes(group=dayofanalysis))
 
 
 
+
 #Miscelanea quality checks (to re-do propperly adding also air standards to compare to baselines):
 
-A %>% 
+all_co2 %>% 
+  filter(!grepl("^S4-", sample)) %>% 
+  filter(dayofanalysis>=as.POSIXct("2024-11-13")) %>% 
+  filter(grepl("^6ppm", sample)) %>% 
+  ggplot(aes(x=dayofanalysis, y=(CO2_ppm-3000)/3000*100, group = dayofanalysis))+
+  geom_boxplot()+
+  scale_y_continuous(name = "Relative deivation from standard (%)")
+
+
+all_n2o %>% 
   filter(!grepl("^S4-", sample)) %>% 
   filter(dayofanalysis>=as.POSIXct("2024-11-13")) %>% 
   filter(grepl("^6ppm", sample)) %>% 
@@ -162,7 +171,7 @@ A %>%
 
 
 
-A %>% 
+all_n2o %>% 
   filter(!grepl("^S4-", sample)) %>% 
   filter(dayofanalysis>=as.POSIXct("2024-11-13")) %>% 
   filter(grepl("^p", sample)) %>% 
@@ -172,7 +181,7 @@ A %>%
 
 
 
-A %>% 
+all_n2o %>% 
   filter(grepl("^S4-", sample)) %>% 
   filter(dayofanalysis>=as.POSIXct("2025-01-20")) %>% 
   mutate(subsite=substr(sample,1,8)) %>% 
@@ -183,7 +192,7 @@ A %>%
 
 
 
-A %>% 
+all_n2o %>% 
   filter(grepl("ptest", sample, ignore.case = T)) %>% 
   filter(dayofanalysis>=as.POSIXct("2025-01-24")) %>% 
   separate(peak_id, into = c("sample","ml","injno"),sep = "_") %>% 
@@ -193,7 +202,7 @@ A %>%
   geom_abline(intercept = 100,slope = 0)+
   scale_y_continuous(breaks = seq(100,250,by=10))
 
-A %>% 
+all_n2o %>% 
   filter(grepl("ptest", sample, ignore.case = T)) %>% 
   filter(dayofanalysis>=as.POSIXct("2025-01-24")) %>% 
   separate(peak_id, into = c("sample","ml","injno"),sep = "_") %>% 
@@ -204,7 +213,7 @@ A %>%
 
 
 
-A %>% 
+all_n2o %>% 
   filter(grepl("6ppm", sample, ignore.case = T)) %>% 
   # filter(dayofanalysis>=as.POSIXct("2025-01-20")) %>% 
   separate(peak_id, into = c("sample","ml","injno"),sep = "_") %>% 
@@ -213,7 +222,7 @@ A %>%
   geom_abline(intercept = 100,slope = 0)
 
 
-A %>% 
+all_n2o %>% 
   filter(grepl("6ppm", sample, ignore.case = T)) %>% 
   filter(dayofanalysis>=as.POSIXct("2024-11-13")) %>% 
   # filter(dayofanalysis>=as.POSIXct("2025-01-20")) %>% 
@@ -228,7 +237,7 @@ A %>%
 
 
 #Miscelanea
-ri_samplesdone<- A %>% 
+ri_samplesdone<- all_n2o %>% 
   filter(grepl("RI",sample)) %>% 
   group_by(sample) %>% 
   summarise(avg_ppm=mean(N2O_ppm, na.rm = T))

@@ -117,11 +117,13 @@ n2o_peakout<- c("S2-CU-A2-2f_0.1_1","S2-CU-A2-2f_0.1_3","S2-CU-A2-2f_0.1_5", "S2
                 "S3-DU-A1-1f_0.8_1","S3-DU-A2-5f_0.8_1",#2025-02-10
                 "S2-CA-A2-4f_0.8_1","S2-CA-R2-5f_0.8_2","S2-DA-P2-1i_1_2",# 2025-02-12
                 #2025-02-13 N2O all good
-                "S2-RI-R1-5i_1_2")#2025-02-14
-#2025-02-17 all good
+                "S2-RI-R1-5i_1_2",#2025-02-14
+                #2025-02-17 all good
+                #2025-02-18 all good
+                "S3-VA-R1-2f_0.8_1")#2025-02-19
 
 
-n2o_daysinspected<- c("2025-02-11","2025-02-10","2025-02-07","2025-02-12","2025-02-13","2025-02-14","2025-02-17")
+n2o_daysinspected<- c("2025-02-11","2025-02-10","2025-02-07","2025-02-12","2025-02-13","2025-02-14","2025-02-17","2025-02-18","2025-02-19")
 
 #CH4 inspection: 
 #Inspect samples with very high cv and clean individual peaks.
@@ -145,20 +147,22 @@ ch4_peakout<- c("S2-CU-A1-5f_0.8_1",#2025-02-11
                 "S3-DU-A1-1f_0.8_1","S3-DU-A2-5f_0.8_1",#2025-02-10
                 "S2-CA-A1-5f_0.8_1","S2-DA-P2-1i_1_2",# 2025-02-12
                 "S2-DA-A1-1i_1_3","S2-DU-A1-6f_0.8_1",#2025-02-13
-                "S2-RI-R1-5i_1_2")#2025-02-14
-#2025-02-17 all good
+                "S2-RI-R1-5i_1_2",#2025-02-14
+                #2025-02-17 all good
+                "S3-VA-P1-3f_0.8_1")#2025-02-18
+#2025-02-19 good
 
-ch4_daysinspected<- c("2025-02-11","2025-02-10","2025-02-07","2025-02-12","2025-02-13","2025-02-14", "2025-02-17")
+ch4_daysinspected<- c("2025-02-11","2025-02-10","2025-02-07","2025-02-12","2025-02-13","2025-02-14", "2025-02-17","2025-02-18","2025-02-19")
 
 
 
 #CO2 inspection: 
 #Inspect samples with very high cv and clean individual peaks.
 test %>% 
-  filter(gas=="co2") %>% 
+  # filter(gas=="co2") %>% 
   filter(!peak_id%in%co2_peakout) %>% 
   filter(!dayofanalysis%in%co2_daysinspected) %>% 
-  # filter(dayofanalysis=="2025-02-12") %>% 
+  filter(!dayofanalysis%in%co2_daystodecide) %>%
   group_by(sample, gas) %>% 
   mutate(avg_ppm=mean(ppm, na.rm=T),
          sd_ppm= sd(ppm, na.rm=T),
@@ -170,16 +174,18 @@ test %>%
   geom_label(aes(label=peak_id))
 
 #CO2 of 2025-02-17 to be decided (improve baseline-correction method)
-
+#CO2 of 2025-02-18 to be decided (improve baseline-correction method)
+co2_daystodecide<- c("2025-02-17","2025-02-18")
 #CO2 data already inspected (per day of injection)
 co2_peakout<- c("S2-CU-A1-5f_0.8_1",#2025-02-11
                 "S3-DU-A1-1f_0.8_1","S3-DU-A2-5f_0.8_1",#2025-02-10
                 "S3-CU-A1-6f_0.8_3","S3-CU-P1-1f_0.8_2","S3-CU-R1-2f_0.4_1","S3-CU-R1-4f_0.8_1","S4-DU-A2-2f_0.8_2","S4-DU-P1-1f_0.8_4",#2025-02-07
                 "S2-CA-R1-6f_0.8_3","S2-DA-P2-1i_1_2","S2-DA-R1-5f_0.4_1",# 2025-02-12
                 "S2-DU-R2-1i_1_3",#2025-02-13
-                "S2-DA-A2-4f_0.8_3","S2-RI-P2-1f_0.8_3", "S2-RI-R1-5i_1_2")#2025-02-14
+                "S2-DA-A2-4f_0.8_3","S2-RI-P2-1f_0.8_3", "S2-RI-R1-5i_1_2",#2025-02-14
+                "S3-RI-A1-1i_1_3")#2025-02-19
 
-co2_daysinspected<- c("2025-02-11","2025-02-10","2025-02-07","2025-02-12","2025-02-13","2025-02-14")
+co2_daysinspected<- c("2025-02-11","2025-02-10","2025-02-07","2025-02-12","2025-02-13","2025-02-14","2025-02-19")
 
 
 #Create cores clean with all injections
@@ -252,7 +258,7 @@ cores_clean_all %>%
 #S3-CU-P1: core 3i has ch4 at 3.25ppm, 1i and 5i at 2.4ppm. 
 #s2-ca-p2: core 5i has super high methane 45ppm, 1i and 3i at ~4ppm.
 
-#Doing the average of initial cores for the above samplings would impact the fluxes calculated for tf. Chose between removing high values (CH4 building in cores with very high flux, so it wont change too much)
+#Doing the average of initial cores for the above samplings would impact the fluxes calculated for tf. Decide if we remove high values of T0 (CH4 building in cores with very high flux, so it wont change too much).
 
 cores_clean_all %>% 
   filter(gas=="ch4") %>% 
