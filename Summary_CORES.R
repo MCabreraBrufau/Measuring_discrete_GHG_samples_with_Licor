@@ -52,9 +52,12 @@ for(i in CH4ppmfiles){
 }
 
 
-print(co2[!co2$peak_id%in%ch4$peak_id,],n=30)
-#CH4 too high, co2 unreliable for co2 sample S4-CA-R2-27 Headspace sample most likely 2025-02-05
-#CH4 too high, co2 unreliable for co2 sample S4-CU-A1-3 Headspace sample most likely 2025-02-06
+#CHECK MISSMATCHES between CO2 and CH4: detect integration errors for CO2
+print(co2[!co2$peak_id%in%ch4$peak_id,],n=50)
+#S4-CA-R2-27 CH4 too high, co2 peak detection failed. Headspace sample most likely, 2025-02-05
+#S4-CU-A1-3 CH4 too high and noisy baseline, co2 peak detection failed. Headspace sample most likely, 2025-02-06
+#S4-DA-A2-6f CH4 too high, co2 peak detection failed. 2025-02-20
+#S4-DA-R1-5f CH4 too high, co2 peak detection failed. 2025-02-20
 
 
 #Format to join (create column gas and rename ppm)
@@ -71,8 +74,10 @@ rm(n2o,co2,ch4)
 #Filter for core injections only
 cores<- all %>% 
   filter(grepl("^S",sample)) %>% # keep only R4Cs samples
-  filter(grepl("i|f", sample)) # keep only cores (t0 ends in "i", tf ends in "f")
-
+  filter(grepl("i|f", sample)) %>%  # keep only cores (t0 ends in "i", tf ends in "f")
+  separate(peak_id, into=c("sample","ml_text","peak_num"),sep = "_", remove = F) %>% 
+  mutate(remark=paste0(sample,"_",ml_text)) %>% 
+  select(-c(ml_text,peak_num))
 
 
 ##---2. Inspect & clean----
@@ -95,6 +100,7 @@ test %>%
   scale_y_continuous(limits = c(0,0.2))+
   facet_wrap(~gas, scales="free")
 
+
 #N2O inspection: 
 #Inspect samples with very high cv and clean individual peaks.
 test %>% 
@@ -102,10 +108,11 @@ test %>%
   # filter(dayofanalysis=="2025-02-07") %>% 
   filter(!peak_id%in%n2o_peakout) %>% 
   filter(!dayofanalysis%in%n2o_daysinspected) %>% 
+  filter(!remark%in%n2o_negative_remarks) %>% 
   group_by(sample, gas) %>% 
   mutate(avg_ppm=mean(ppm, na.rm=T),
          sd_ppm= sd(ppm, na.rm=T),
-         cv_ppm=sd_ppm/avg_ppm) %>% 
+         cv_ppm=abs(sd_ppm/avg_ppm)) %>% 
   filter(cv_ppm>0.05) %>%
   ggplot(aes(x=sample, y=ppm, col=factor(dayofanalysis)))+
   geom_point()+
@@ -120,23 +127,30 @@ n2o_peakout<- c("S2-CU-A2-2f_0.1_1","S2-CU-A2-2f_0.1_3","S2-CU-A2-2f_0.1_5", "S2
                 "S2-RI-R1-5i_1_2",#2025-02-14
                 #2025-02-17 all good
                 #2025-02-18 all good
-                "S3-VA-R1-2f_0.8_1")#2025-02-19
+                "S3-VA-R1-2f_0.8_1",#2025-02-19
+                "S4-CA-A2-4f_0.2_1","S4-CA-A2-4f_0.6_2","S4-CA-A2-4f_0.4_1","S4-DA-A2-5f_0.1_2","S4-DA-A2-5f_0.1_3","S4-DA-A2-5f_0.2_1","S4-DA-R1-3f_0.4_1","S4-DA-R1-3f_0.2_3","S4-DA-R1-4f_0.8_1","S4-DA-R1-4f_0.2_1","S4-DA-R1-5f_0.4_1","S4-DA-R1-5f_0.2_1","S4-DA-R1-5f_0.8_1","S4-DA-R1-6f_0.4_1",#2025-02-20
+                "S4-CA-P2-2f_0.8_1")#2025-02-21
+
+n2o_negative_remarks<- c("S4-DA-A2-6f_0.8","S4-DA-A2-6f_0.6","S4-DA-A2-6f_0.4","S4-DA-A2-6f_0.2","S4-DA-A2-6f_0.1")
+
+n2o_daysinspected<- c("2025-02-11","2025-02-10","2025-02-07","2025-02-12","2025-02-13","2025-02-14","2025-02-17","2025-02-18","2025-02-19","2025-02-20","2025-02-21")
 
 
-n2o_daysinspected<- c("2025-02-11","2025-02-10","2025-02-07","2025-02-12","2025-02-13","2025-02-14","2025-02-17","2025-02-18","2025-02-19")
+
 
 #CH4 inspection: 
 #Inspect samples with very high cv and clean individual peaks.
 test %>% 
   filter(gas=="ch4") %>% 
-  # filter(dayofanalysis=="2025-02-12") %>% 
   filter(!peak_id%in%ch4_peakout) %>% 
   filter(!dayofanalysis%in%ch4_daysinspected) %>% 
+  # filter(!sample%in%c("S4-DA-A2-1i","S4-DA-A2-1f","S4-DA-A2-3f","S4-DA-A2-4f","S4-DA-P2-1i","S4-DA-A2-2f","S4-DA-R1-5f")) %>% 
   group_by(sample, gas) %>% 
   mutate(avg_ppm=mean(ppm, na.rm=T),
          sd_ppm= sd(ppm, na.rm=T),
-         cv_ppm=sd_ppm/avg_ppm) %>% 
+         cv_ppm=abs(sd_ppm/avg_ppm)) %>% 
   filter(cv_ppm>0.05) %>%
+  arrange(desc(cv_ppm)) %>% 
   ggplot(aes(x=sample, y=ppm, col=factor(dayofanalysis)))+
   geom_point()+
   geom_label(aes(label=peak_id))
@@ -149,33 +163,41 @@ ch4_peakout<- c("S2-CU-A1-5f_0.8_1",#2025-02-11
                 "S2-DA-A1-1i_1_3","S2-DU-A1-6f_0.8_1",#2025-02-13
                 "S2-RI-R1-5i_1_2",#2025-02-14
                 #2025-02-17 all good
-                "S3-VA-P1-3f_0.8_1")#2025-02-18
-#2025-02-19 good
+                "S3-VA-P1-3f_0.8_1", #2025-02-18
+                #2025-02-19 good
+                "S4-DA-P2-1i_1_1","S4-DA-R1-3f_0.4_1","S4-DA-R1-3f_0.8_1","S4-CA-A2-1f_0.8_1","S4-DA-R1-6f_0.8_1","S4-DA-R1-6f_0.4_1","S4-DA-R1-1f_0.8_1","S4-DA-R1-1f_0.4_1","S4-CA-A2-5f_0.8_1","S4-DA-R1-4f_0.2_1","S4-DA-R1-4f_0.4_1","S4-CA-A2-4f_0.2_1","S4-CA-A2-4f_0.6_3","S4-CA-A2-4f_0.4_1","S4-DA-R1-2f_0.8_1","S4-DA-P1-1f_0.8_1","S4-DA-A2-6f_0.8_1", "S4-DA-A2-6f_0.4_1","S4-DA-R1-5f_0.6_2","S4-DA-P1-2f_0.8_1","S4-DA-A2-5f_0.2_1","S4-DA-A2-4f_0.8_1",#2025-02-20
+                "S4-CA-R2-5f_0.8_1","S4-VA-R1-1f_0.8_4","S4-VA-R1-6f_0.8_4","S4-CA-P2-2f_0.8_1","S4-VA-P1-1i_1_2")#2025-02-21
 
-ch4_daysinspected<- c("2025-02-11","2025-02-10","2025-02-07","2025-02-12","2025-02-13","2025-02-14", "2025-02-17","2025-02-18","2025-02-19")
+
+ch4_daysinspected<- c("2025-02-11","2025-02-10","2025-02-07","2025-02-12","2025-02-13","2025-02-14", "2025-02-17","2025-02-18","2025-02-19","2025-02-20","2025-02-21")
+
+
 
 
 
 #CO2 inspection: 
 #Inspect samples with very high cv and clean individual peaks.
 test %>% 
-  # filter(gas=="co2") %>% 
+  filter(gas=="co2") %>%
   filter(!peak_id%in%co2_peakout) %>% 
-  filter(!dayofanalysis%in%co2_daysinspected) %>% 
-  filter(!dayofanalysis%in%co2_daystodecide) %>%
+  filter(!dayofanalysis%in%co2_daysinspected) %>%
+  filter(!remark%in%co2_negative_remarks) %>% 
+  # filter(!sample%in%c("S4-DA-R1-3f","S4-DA-P1-1f","S4-DA-A2-4f")) %>%
   group_by(sample, gas) %>% 
   mutate(avg_ppm=mean(ppm, na.rm=T),
          sd_ppm= sd(ppm, na.rm=T),
-         cv_ppm=sd_ppm/avg_ppm) %>% 
+         cv_ppm=abs(sd_ppm/avg_ppm)) %>% 
   filter(cv_ppm>0.05) %>%
+  arrange(desc(cv_ppm)) %>% 
+  ungroup() %>% 
+  # filter(cv_ppm==max(cv_ppm)) %>% 
   # filter(!sample%in%c("S3-DU-A1-5f","S4-DU-P1-1f")) %>% 
   ggplot(aes(x=sample, y=ppm, col=factor(dayofanalysis)))+
   geom_point()+
   geom_label(aes(label=peak_id))
 
-#CO2 of 2025-02-17 to be decided (improve baseline-correction method)
-#CO2 of 2025-02-18 to be decided (improve baseline-correction method)
-co2_daystodecide<- c("2025-02-17","2025-02-18")
+
+
 #CO2 data already inspected (per day of injection)
 co2_peakout<- c("S2-CU-A1-5f_0.8_1",#2025-02-11
                 "S3-DU-A1-1f_0.8_1","S3-DU-A2-5f_0.8_1",#2025-02-10
@@ -183,26 +205,36 @@ co2_peakout<- c("S2-CU-A1-5f_0.8_1",#2025-02-11
                 "S2-CA-R1-6f_0.8_3","S2-DA-P2-1i_1_2","S2-DA-R1-5f_0.4_1",# 2025-02-12
                 "S2-DU-R2-1i_1_3",#2025-02-13
                 "S2-DA-A2-4f_0.8_3","S2-RI-P2-1f_0.8_3", "S2-RI-R1-5i_1_2",#2025-02-14
-                "S3-RI-A1-1i_1_3")#2025-02-19
+                "S3-RI-A1-1i_1_3",#2025-02-19
+                "S4-DA-A2-4f_0.4_1","S4-CA-A2-1f_0.4_3","S4-CA-A2-5f_0.4_1","S4-DA-R1-3f_0.2_1","S4-DA-R1-3f_0.2_3",#2025-02-20
+                "S4-CA-R2-5f_0.8_1","S4-VA-R1-6f_0.8_4","S4-VA-R1-1f_0.8_4","S4-VA-P1-5i_1_3","S4-CA-P2-2f_0.8_1","S4-VA-P1-1i_1_3","S4-VA-P1-3i_1_3","S4-VA-P1-5i_1_4")#2025-02-21
 
-co2_daysinspected<- c("2025-02-11","2025-02-10","2025-02-07","2025-02-12","2025-02-13","2025-02-14","2025-02-19")
+
+#Exclude remarks with negative co2 peaks
+co2_negative_remarks<- c("S4-DA-A2-3f_0.8","S4-DA-A2-4f_0.8","S4-DA-A2-5f_0.8","S4-DA-A2-5f_0.4","S4-DA-A2-5f_0.2","S4-DA-A2-6f_0.8","S4-DA-A2-6f_0.4","S4-DA-A2-6f_0.2","S4-DA-A2-6f_0.1","S4-DA-A2-6f_0.6","S4-DA-P1-1f_0.8","S4-DA-R1-1f_0.8","S4-DA-R1-1f_0.4","S4-DA-R1-2f_0.8","S4-DA-R1-3f_0.8","S4-DA-R1-3f_0.4","S4-DA-R1-4f_0.8","S4-DA-R1-4f_0.4","S4-DA-R1-4f_0.2","S4-DA-R1-4f_0.6","S4-DA-R1-5f_0.8","S4-DA-R1-5f_0.4","S4-DA-R1-5f_0.2","S4-DA-R1-5f_0.6","S4-DA-R1-6f_0.8","S4-DA-R1-6f_0.4","S4-CA-A2-1f_0.8","S4-CA-A2-4f_0.8","S4-CA-A2-4f_0.4","S4-CA-A2-4f_0.2","S4-CA-A2-4f_0.6","S4-CA-A2-5f_0.8")#2025-02-20
 
 
-#Create cores clean with all injections
+#CO2 of days 2025-02-17 and 2025-02-18 have very high deviations, nothing we can do. still, the differences between initial and final seem consistent
+co2_daysinspected<- c("2025-02-11","2025-02-10","2025-02-07","2025-02-12","2025-02-13","2025-02-14","2025-02-17","2025-02-18","2025-02-19","2025-02-20","2025-02-21")
+
+
+
+#Create cores clean with all injections, set outliers to NA, also co2_negative_remakrs mutate(ppm=case_when())
 cores_clean_all<- cores %>% 
-  filter(!(gas=="n2o"&peak_id%in%n2o_peakout)) %>% 
-  filter(!(gas=="ch4"&peak_id%in%ch4_peakout)) %>% 
-  filter(!(gas=="co2"&peak_id%in%co2_peakout))
+  mutate(ppm=case_when(gas=="n2o"&peak_id%in%n2o_peakout~NA_real_,
+                       gas=="n2o"&remark%in%n2o_negative_remarks~NA_real_,
+                       gas=="ch4"&peak_id%in%ch4_peakout~NA_real_,
+                       gas=="co2"&peak_id%in%co2_peakout~NA_real_,
+                       gas=="co2"&remark%in%co2_negative_remarks~NA_real_,
+                       TRUE~ppm))
 
-#Create cleaned dataset
+#Create cleaned dataset, summarising injections per sample and gas
 cores_clean<- cores_clean_all %>% 
-  filter(!(gas=="n2o"&peak_id%in%n2o_peakout)) %>% 
-  filter(!(gas=="ch4"&peak_id%in%ch4_peakout)) %>% 
-  filter(!(gas=="co2"&peak_id%in%co2_peakout)) %>% 
+  select(sample,gas,dayofanalysis,ppm) %>% 
   group_by(sample, gas,dayofanalysis) %>% 
   summarise(avg_ppm=mean(ppm, na.rm=T),
          sd_ppm= sd(ppm, na.rm=T),
-         cv_ppm=sd_ppm/avg_ppm,
+         cv_ppm=abs(sd_ppm/avg_ppm),
          n_injections=sum(!is.na(ppm)))
 
 
@@ -211,6 +243,19 @@ cores_clean %>%
   ggplot(aes(x=cv_ppm, fill=gas)) +
   geom_histogram()+
   facet_wrap(~gas, scales="free")
+
+
+cores_clean_all %>% 
+  group_by(sample, gas) %>% 
+  mutate(avg_ppm=mean(ppm, na.rm=T),
+         sd_ppm= sd(ppm, na.rm=T),
+         cv_ppm=abs(sd_ppm/avg_ppm)) %>% 
+  filter(cv_ppm>0.10) %>% 
+  ggplot(aes(x=sample, y=ppm,col=factor(dayofanalysis)))+
+  geom_point()+
+  geom_label(aes(label=peak_id))+
+  facet_wrap(.~gas, scales="free")
+
 
 
 ##---3. Export cleaned data ----
@@ -241,6 +286,7 @@ cores_clean_all %>%
 #Up to 200250211, intial cores very homogeneous, average of t0 cores is appropiate
 cores_clean_all %>% 
   filter(gas=="co2") %>% 
+  filter(dayofanalysis%in%c("2025-02-17","2025-02-18")) %>% 
   # filter(grepl("i",sample)) %>% 
   separate(sample, into = c("season","site","subsite","core"), sep = "-",remove = F) %>% 
   mutate(time=case_when(grepl("i",sample)~"inicial",
@@ -282,4 +328,53 @@ cores_clean_all %>%
 #S3-DU: all subsites OK
 #S2-CU: P1 p2 a1 a2 r1,r2
 #S2-CA: p1
+
+
+
+
+#Inspect 3 gases per subsite 
+cores_clean_all %>% 
+  # filter(gas=="co2") %>% 
+  filter(grepl("S3-CA-R2",sample)) %>%
+  separate(sample, into = c("season","site","subsite","core"), sep = "-",remove = F) %>% 
+  mutate(time=case_when(grepl("i",sample)~"inicial",
+                        grepl("f",sample)~core)) %>% 
+  # filter(site=="DU") %>% 
+  # filter(season=="S4") %>% 
+  ggplot(aes(x=time, y=ppm,col=season))+
+  geom_point()+
+  # facet_grid(subsite~site, scales="free")
+  facet_grid(gas~subsite, scales="free")+
+  ggtitle("CO2 (ppm)")
+
+
+
+cores_clean%>% 
+  filter(gas=="co2") %>% 
+  filter(dayofanalysis%in%c("2025-02-17","2025-02-18")) %>% 
+  # filter(grepl("i",sample)) %>% 
+  separate(sample, into = c("season","site","subsite","core"), sep = "-",remove = F) %>% 
+  mutate(time=case_when(grepl("i",sample)~"inicial",
+                        grepl("f",sample)~core)) %>% 
+  # filter(site=="DU") %>% 
+  # filter(season=="S4") %>% 
+  ggplot(aes(x=time, y=cv_ppm,col=season))+
+  geom_point()+
+  # facet_grid(subsite~site, scales="free")
+  facet_grid(site~subsite, scales="free")+
+  ggtitle("CO2 (ppm)")
+
+cores_clean_all %>% 
+  filter(gas=="co2") %>%
+  filter(dayofanalysis%in%c("2025-02-17","2025-02-18")) %>% 
+  separate(sample, into = c("season","site","subsite","core"), sep = "-",remove = F) %>% 
+  mutate(time=case_when(grepl("i",sample)~"inicial",
+                        grepl("f",sample)~core)) %>% 
+  # filter(site=="DU") %>% 
+  # filter(season=="S4") %>% 
+  ggplot(aes(x=time, y=ppm,col=season))+
+  geom_point()+
+  # facet_grid(subsite~site, scales="free")
+  facet_grid(site~subsite, scales="free")+
+  ggtitle("CO2 (ppm)")
 

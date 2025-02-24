@@ -115,6 +115,11 @@ message(paste0(round((dim(S2S3S4cores_todo)[1]-dim(S2S3S4cores_done)[1])/samples
 message(paste0("Average CV of core samples analysed is ",round(mean(S2S3S4cores_done$cv_N2Oppm, na.rm = T)*100,2)," % for N2O"))
 
 
+#Which cores samples are missing concentration data?
+to_do_cores<-S2S3S4cores_todo[!S2S3S4cores_todo$remark%in%S2S3S4cores_done$sample,]
+#Checked, these samples must have been misslabeled or lost. 
+
+
 
 #Check CO2 variability: 
 
