@@ -148,7 +148,8 @@ sumary_co2<- all_co2 %>%
 
 ggplot(sumary_co2, aes(x=dayofanalysis, y=cv_CO2))+
   geom_point()+
-  geom_boxplot(aes(group=dayofanalysis))
+  geom_boxplot(aes(group=dayofanalysis))+
+  scale_y_continuous(limits = c(0,0.6))
 
 
 
