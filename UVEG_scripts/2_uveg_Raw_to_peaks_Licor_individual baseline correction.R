@@ -24,24 +24,25 @@ rm(list=ls())
 #folder_root <- dirname(rstudioapi::getSourceEditorContext()$path)
 #But you can set the folder in other path
 
-folder_root<- "C:/Users/Miguel/Dropbox/Licor_N2O"
-# folder_root <- "/home/jorge/Documentos/Postdoctoral/Onedrive_UB/UB/NaturBPond/GHG/Pond_element_flux/December/Discrete_samples" # You have to make sure this is pointing to the write folder on your local machine
-
-#Data folders
-folder_raw <- paste0(folder_root,"/Rawdata") #contains unedited files downloaded from licor
+folder_root<- "C:/Users/Miguel/Dropbox/Licor_cores_UVEG" 
+r4cs_root <- "C:/Users/Miguel/Dropbox/RESTORE4Cs - Fieldwork/Data" 
+#Data folders: R4Cs fieldwork ghg raw licor
+folder_raw <- paste0(r4cs_root,"/GHG/RAW data/RAW Data Licor-7810") #contains unedited files downloaded from licor
 
 #If you ran the Map_injections.R script, this folder have already been created, if not, run it
-folder_mapinjections<- paste0(folder_root,"/Map_injections") #Contains csvs with startstop times of injections and their corresponding labels, corrections should be made manually when needed (editting the csvs and re-saving with "corrected_" prefix)
+folder_mapinjections<- paste0(folder_root,"/Map_injections") #Contains the corrected_master_map.csv with startstop times of injections and their corresponding labels, corrections should be made manually when needed (editting the csvs and re-saving with "corrected_" prefix)
 
 #Folder for plots
-folder_plots<-  paste0(folder_root,"/Integration plots (per-peak Base-correction)") #One pdf per dayofinjections (auto-name from rawfile name), plots of each injection sequence (baseline correction & integration)
+folder_plots<-  paste0(folder_root,"/Integration plots") #One pdf per rawfile (auto-name from rawfile name), plots of each injection sequence (baseline correction & integration)
+
 if (!dir.exists(folder_plots)) {
   # If it doesn't exist, create the folder
   dir.create(folder_plots)
 }
 
 #Folder for results
-folder_results<- paste0(folder_root,"/Results_ppm (per-peak Base-correction)")#One csv per dayofinjections will be created (auto-name from rawfile name), with individual peak parameters (label, peak_id, peaksum, peakmax, unixtime_ofmax, raw_peaksum, dayofanalysis, SNR)
+folder_results<- paste0(folder_root,"/Results_ppm")#One csv per rawfile will be created (auto-name from rawfile name), with individual peak parameters (label, peak_id, peaksum, peakmax, unixtime_ofmax, raw_peaksum, dayofanalysis, SNR)
+
 if (!dir.exists(folder_results)) {
   # If it doesn't exist, create the folder
   dir.create(folder_results)
@@ -58,75 +59,89 @@ library(stringr)
 library(ggpmisc)
 
 #Load repository functions
-repo_root <- dirname(rstudioapi::getSourceEditorContext()$path)
+repo_root <- dirname(dirname(rstudioapi::getSourceEditorContext()$path))
 files.sources = list.files(path = paste0(repo_root,"/functions"), full.names = T)
 for (f in files.sources){source(f)}
 
 ###1. Check data to integrate####
 
-#Get rawfiles
-rawfiles<- list.files(path = folder_raw, pattern = ".data")
+#Get corrected master map
 
-#Get corrected maps of injections
-mapscorrect<- list.files(path = folder_mapinjections, pattern = "corrected_.*_map_injection_")
+master_map<-read.csv( paste0(folder_mapinjections,"/corrected_master_map.csv"))
+
+#Get rawfiles
+rawfiles<- master_map %>% 
+  filter(!is.na(label_correct)) %>% 
+  select(path,date) %>% 
+  distinct() %>% 
+  mutate(date=dmy(date),
+         outfilename=paste0(str_extract(path, "(?<=/)[^/]+(?=\\.)"),"_",date))
+  
+  
 
 #Get extracted data
 integratedfiles<- list.files(path = folder_results, pattern = "^integrated_injections_")
 
 
 #Select code of rawfiles with corresponding mapscorrect but without integratedfiles
-rawtointegrate<- gsub(".data","",rawfiles[
-  gsub(".data","",rawfiles)%in%gsub(".csv","",gsub("corrected_.*_map_injection_","",mapscorrect))& #Match raw with maps
-    !gsub(".data","",rawfiles)%in%gsub(".csv","",gsub("^integrated_injections_[A-Z0-9]{3}_","",integratedfiles)) #Not match raw with integratedfiles
-])
+rawtointegrate<- unique(rawfiles[!rawfiles$outfilename%in%gsub(".csv","",gsub("^integrated_injections_[A-Z0-9]{3}_","",integratedfiles)),"path"]) #Not match raw with integratedfiles
+
 
 ####TO TEST#####
-rawtointegrate<- c("TG10-01932-2025-02-18T050000", "TG20-01377-2025-02-18T050000")
+
 
 ###2. Integration loop####
 
 #Loop over raw files
 for (i in rawtointegrate){
+  rawfilename<- str_extract(i, "(?<=/)[^/]+(?=\\.)")
   
-  message(paste("Integrating peaks from",i))
+  message(paste("Integrating peaks from",rawfilename))
   
   #Import data from rawfile
-  #Here we check if the raw file is for CO2 and CH4 or for N2O
-  if (grepl("TG10", i)) {
-    raw_data<- read_Licor_TG10(paste0(folder_raw,"/",i,".data"))
+    raw_data<- read_Licor_TG10(i)
     gasname <- "CO2_and_CH4"
-  }
-  if (grepl("TG20", i)) {
-    raw_data<- read_Licor_TG20(paste0(folder_raw,"/",i,".data"))
-    gasname <- "N2O"
-  }
-  raw_data <- raw_data %>% group_by(UTCtime) %>% summarise(across(everything(), ~last(.))) %>% ungroup()
-  
-  #Import corrected map of injections
-  mapinj<- read.csv(paste0(folder_mapinjections,"/","corrected_", gasname,"_map_injection_",i,".csv")) %>% 
-    filter(!is.na(label_correct)) %>% 
-    filter(label_correct!="") %>% 
-    select(-date)
-  
-  #Get date of analysis 
-  dayofanalysis <- read.csv(paste0(folder_mapinjections,"/","raw_", gasname, "_map_injection_",i,".csv")) %>% 
-    select(date) %>% pull() %>% unique()
-  
-  mapinj$date <- dayofanalysis
-  
-  #Aquí crear una variable para el loop con un if else, si es TG10 => c("CO2", "CH4") si no c("N2O)
-  if (grepl("TG10", i)) {
     gasforloop <- c("CO2", "CH4")
-  }
-  if (grepl("TG20", i)) {
-    gasforloop <- "N2O"
-  }
   
+    
+    #Import corrected map of injections
+    mapinj<- master_map %>% 
+      filter(!is.na(label_correct)) %>% 
+      filter(path==i)
+    
+    #Subset raw_data to injections timespanspan
+    first_remarkunix<- min(mapinj %>% mutate(unixstart=as.numeric(dmy_hms(paste(date,Tstart_correct), tz = "UTC"))) %>% pull(unixstart))
+    last_remarkunix<- max(mapinj %>% mutate(unixstop=as.numeric(dmy_hms(paste(date,Tend_correct), tz = "UTC"))) %>% pull(unixstop))              
+    #IF we have repeated entries in raw_data with the same unixtime, we keep the last appearance
+  raw_data <- raw_data %>% filter(between(unixtime,first_remarkunix,last_remarkunix)) %>% 
+                                    group_by(unixtime) %>% summarise(across(everything(), ~last(.))) %>% ungroup()
+  
+  
+  daystoloop<- unique(mapinj$date)
+  
+  # read.csv(paste0(folder_mapinjections,"/","corrected_", gasname,"_map_injection_",i,".csv")) %>% 
+    # filter(!is.na(label_correct)) %>% 
+    # filter(label_correct!="") %>% 
+    # select(-date)
+  
+  #Loop over dayofanalysis on mapinj
+  for(dayofanalysis in daystoloop){
+      
+  # dayofanalysis <- read.csv(paste0(folder_mapinjections,"/","raw_", gasname, "_map_injection_",i,".csv")) %>% 
+    # select(date) %>% pull() %>% unique()
+  datetoprint<- dmy(dayofanalysis)
+  
+  # mapinj$date <- dayofanalysis
+    mapinj<- master_map %>% 
+      filter(!is.na(label_correct)) %>% 
+      filter(path==i)%>% 
+      filter(date==dayofanalysis)
+    
+
   # #A loop for each gas species
   for (gas in gasforloop) {
     print(paste("Peak integration for", gas))
     
-    #Create tables where baseline and injections will be saved
     
     #Initialize data frame for injections
     A<- data.frame(
@@ -140,34 +155,34 @@ for (i in rawtointegrate){
       peakSNR = double())
     
     #Initialize data frame for baselines
-    B<- data.frame(
-      dayofanalysis=character(),
-      label = character(),
-      base_avg = double(),
-      base_sd = double(),
-      base_cv = double(),
-      base_n = integer(),
-      stringsAsFactors = FALSE
-    )
+    # B<- data.frame(
+    #   dayofanalysis=character(),
+    #   label = character(),
+    #   base_avg = double(),
+    #   base_sd = double(),
+    #   base_cv = double(),
+    #   base_n = integer(),
+    #   stringsAsFactors = FALSE
+    # )
     
     #Initialize list of plots to save integration plots
     plotspeak <- list()
     
-    #loop over different labels of rawfile i
+    #loop over different labels of date dayofanalysis in rawfile i
     for (inj in mapinj$label_correct){
       
       #Unixstart, Tstart_correct from mapinj in unix time format
-      unixstart<- as.numeric(as.POSIXct(paste(mapinj[mapinj$label_correct==inj,]$date,mapinj[mapinj$label_correct==inj,]$Tstart_correct), tz = "UTC"))
+      unixstart<- as.numeric(dmy_hms(paste(mapinj[mapinj$label_correct==inj,]$date,mapinj[mapinj$label_correct==inj,]$Tstart_correct), tz = "UTC"))
       
       #Unixend, Tend_correct from mapinj in unix time format
-      unixend<- as.numeric(as.POSIXct(paste(mapinj[mapinj$label_correct==inj,]$date,mapinj[mapinj$label_correct==inj,]$Tend_correct), tz = "UTC"))
-      
+      unixend<- as.numeric(dmy_hms(paste(mapinj[mapinj$label_correct==inj,]$date,mapinj[mapinj$label_correct==inj,]$Tend_correct), tz = "UTC"))
       #FirstLicor, TG10 or TG20 from mapinj 
-      firstlicor<- mapinj[mapinj$label_correct==inj,]$firstlicor_TG10_or_TG20
+      # firstlicor<- mapinj[mapinj$label_correct==inj,]$firstlicor_TG10_or_TG20
       
       #Subset data from injection sequence inj 
       inj_data<- raw_data[between(raw_data$unixtime, unixstart,unixend),]  
       
+      # raw_data %>% filter(between(unixtime, unixstart,unixend)) %>% mutate(secondsincestart=unixtime-unixstart)
       #Make sure whole inj_data has the correct label inj
       inj_data$label<- inj
       
@@ -212,42 +227,26 @@ for (i in rawtointegrate){
                                                                      minpeakheight = (((max(!!sym(gas),na.rm = T)-min(!!sym(gas),na.rm=T))/5)+min(!!sym(gas),na.rm=T)), 
                                                                      nups=1, ndowns=1,
                                                                      minpeakdistance = 5)[, 2], TRUE, FALSE)) %>%
-          mutate(peak_id = ifelse(is_localmaxgas, paste0(label,"_",cumsum(is_localmaxgas)), NA)) %>%  #Add unique code for local maxima 
+          mutate(peak_id = ifelse(is_localmaxgas, paste0(label,"_",cumsum(is_localmaxgas)), NA)) %>%  #Add unique peak_id for each local maximum found 
           ungroup()
         
         ##____Peak-window selection#####
         #Consider peakwindow as max height + 4 leading and X trailing points. (i.e. peak width == 12points), 
-        
         inj_data <- inj_data %>%
           mutate(peak_id = map_chr(row_number(), function(idx) {
-            #For each row, search for a non-na peak_id, look up to 4 seconds before and X seconds after the row i. Then assing the value of peak_id to the row i.
+            #For each row, search for a non-na peak_id, look "secondsbefore_max" seconds before and "secondsafter_max" seconds after the row i. Then assing the value of peak_id to the row i.
             #This results in the spread of the value of "peak_id" of the local maximum to secondsbefore_max seconds before and to secondsafter_max seconds after each identified maximum. 
-            secondsbefore_max<- 4
-            #Aquí podría unificar CO2 y CH4 en 15, 20 o 18 segundos (el mismo para ambos) y otro para el N2O = 7
-            #If first licor is TG20  (N2O licor), set narrow integration windows for N2O and wider for CO2 and CH4
-            if(firstlicor =="TG20"){
-              if(gas == "N2O"){
-                secondsafter_max<- 7
-              }
+            
+            #Dedicated windows of integration for each gas
               if(gas == "CO2"){
-                secondsafter_max<- 15
-              }
-              if(gas == "CH4"){
-                secondsafter_max<- 20
-              }
-            }
-            #If first licor is TG10  (CO2&CH4 licor), set narrow integration windows for CO2 and CH4 and wider N2O
-            if(firstlicor =="TG10"){
-              if(gas == "N2O"){
-                secondsafter_max<- 20
-              }
-              if(gas == "CO2"){
+                secondsbefore_max<- 4
                 secondsafter_max<- 7
               }
               if(gas == "CH4"){
+                secondsbefore_max<- 4
                 secondsafter_max<- 7
               }
-            }
+            
             # Check for peak_id in the window:
             surrounding_codes <- peak_id[seq(max(1, idx - secondsafter_max), min(n(), idx + secondsbefore_max))]  
             
@@ -273,8 +272,8 @@ for (i in rawtointegrate){
           group_by(label, peak_id) %>% #For each peak_id do the following
           mutate(gas_bc=!!sym(gas)-first(!!sym(gas))) %>% #Base-corrected timeseries for duration of peak (using the first data point of the peak)
           summarise(peaksum=sum(gas_bc),
-                    peakmax=max(gas_bc), 
-                    unixtime_ofmax=unixtime[gas_bc==max(gas_bc)],
+                    peakmax=max(gas_bc,na.rm = T), 
+                    unixtime_ofmax=unixtime[gas_bc==peakmax],
                     raw_peaksum=sum(!!sym(gas)),.groups = "keep") %>%
           mutate(dayofanalysis=dayofanalysis,
                  peakSNR=peaksum/(3*baseline_sd)) %>% 
@@ -299,7 +298,7 @@ for (i in rawtointegrate){
           scale_y_continuous(name=paste("signal", gas))+
           scale_x_datetime(name="Licor time (UTC)",timezone = "utc")+
           labs(col="")+
-          ggtitle(paste0(dayofanalysis,", injection: ",inj))+
+          ggtitle(paste0(datetoprint,", injection: ",inj))+
           theme_bw()+
           # Add label for average peaksum value
           # geom_text(data=integrated, aes(x = as.POSIXct(min(unixtime_ofmax)-50), 
@@ -327,15 +326,15 @@ for (i in rawtointegrate){
     } 
     
     #Save baseline statistics of rawfile i 
-    write.csv(B,file = paste0(folder_results,"/", "baselines_",gas, "_", i, ".csv"),row.names = F)
+    # write.csv(B,file = paste0(folder_results,"/", "baselines_",gas, "_", rawfilename, ".csv"),row.names = F)
     
     #Save areas of injections for rawfile i   
-    write.csv(A,file = paste0(folder_results,"/", "integrated_injections_",gas, "_", i, ".csv"),row.names = F)
+    write.csv(A,file = paste0(folder_results,"/", "integrated_injections_",gas, "_",datetoprint, rawfilename, ".csv"),row.names = F)
     
     #Save plots of integrations: use i for naming convention of pdf
-    print(paste0("Plotting integrations of day: ", i))
+    print(paste0("Plotting integrations to file: Integrations_",gas,"_",datetoprint,"_", rawfilename,".pdf"))
     #plot every injection sequence and their integrals: 
-    pdf(file = paste0(folder_plots,"/Integrations_",gas, "_",i,".pdf"))  # Open PDF device
+    pdf(file = paste0(folder_plots,"/Integrations_",gas,"_",datetoprint,"_", rawfilename,".pdf"))  # Open PDF device
     
     # Loop through the list of plots and print each plot
     for (plot_name in names(plotspeak)) {
@@ -344,5 +343,6 @@ for (i in rawtointegrate){
     
     dev.off()  # Close the PDF device
   }#end loop for each gas species
-} #end of integration loop
+  }#end loop for each dayofanalysis
+} #end loop for each rawtointegrate 
 

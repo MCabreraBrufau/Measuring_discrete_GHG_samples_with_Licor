@@ -6,10 +6,7 @@
 
 #Description: This script creates a map_injection csv for every rawdata file. These are stored in the Map_injections folder and will be manually edited to correct label text, adapt time of labels or add labels that were not written in the data at the time of collection. 
 
-#THINGS TO ADAPT!!!
-
-#the current approach (i.e. master_map to identify rawfiles with cores,and then per-rawfile map_injections) might create duplicates, as the same data might be present in different rawfiles....
-
+#COMMENTS TO ADAPT!!!!-------
 #If we have already all remarks collected in the master_map, we can use that map directly to select and correct remarks Instead of creating raw_maps and corrected_maps semi-manually with this script. We will still integrate and loop per-day to be clearer. 
 
 #clean WD
@@ -45,13 +42,59 @@ files.sources = list.files(path = paste0(repo_root,"/functions"), full.names = T
 for (f in files.sources){source(f)}
 
 
-#Check rawdata files and map_injection files
 
-#raw_files are named as: paste("TG20-01377-", year-month-day, "-T",hourstartexport, ".data")
-#maps_done will be named as raw_map_injection_rawfile.csv, the rawfile part will not end in .data
+##--Import master_map-----
+#Import master_map with Carlos details
+master_map_raw<- read_xlsx(paste0(r4cs_root, "/Cores/map_incubations+UVEG info.xlsx")) 
 
-#List maps that are already created in folder_mapinjections
-maps_done<- list.files(path=folder_mapinjections, pattern = "^raw_.*_map_injection")
+#Filter and add new-format
+master_map_tocorrect<- master_map_raw %>% 
+  filter(!is.na(type_of_measure)) %>% 
+  select(type_of_measure, vol_inj_ml,label_revised_carlos,label,date,start,stop,path) %>% 
+  mutate(Tstart= format(as.POSIXct(start, origin="1970-01-01", tz="UTC"),"%H:%M:%S"),
+         Tstop= format(as.POSIXct(stop, origin="1970-01-01", tz="UTC"),"%H:%M:%S"),
+         remark_duration=stop-start,
+         rawfilename=str_extract(path, "(?<=/)[^/]+(?=\\.)"),
+         remarkid=paste0(start,label),
+         Tstart_correct=NA,	Tend_correct=NA,	label_correct=NA, obs_CO2_plot=NA, obs_CH4_plot=NA)
+
+
+#If there is data already corrected, add it to the tocorrect map 
+if(file.exists(paste0(folder_mapinjections,"/corrected_master_map.csv"))){
+#Import already corrected maps
+corrected_master<- read.csv( paste0(folder_mapinjections,"/corrected_master_map.csv")) %>% 
+  #filter corrected lines only
+  filter(!is.na(label_correct)) %>% 
+  #select only remarkid and corrected columns
+  select(remarkid, Tstart_correct,Tend_correct,label_correct,obs_CO2_plot,obs_CH4_plot)
+
+#add corrected data to master_tocorrect
+master_map_tocorrect <- master_map_tocorrect %>% 
+  select(-c(Tstart_correct,Tend_correct,label_correct,,obs_CO2_plot,obs_CH4_plot)) %>% #Remove corrected columns (filled with NAs)
+  merge.data.frame(corrected_master, by = "remarkid",all = T)#add corrected values, rest filled with NAs
+}
+
+#Save in folder_mapinjections
+write.csv(master_map_tocorrect, file = paste0(folder_mapinjections,"/tocorrect_master_map.csv"),row.names = F)
+
+
+
+#Manually modify tocorrect_master_map.csv and save with name corrected_master_map.csv
+#Iterative process, to modify anything, always start with tocorrect_master_map file and save changes as corrected_master_map
+
+
+
+
+
+
+
+
+##---OLD missing-----
+
+#ADAPT TO select name well(everything between the last appearance of "/" and the first appearance of ".")
+#Get raw files without corresponding map injection: 
+raw_files_withoutmap<- raw_ofinterest[!str_extract(raw_ofinterest, "(?<=/)[^/]+(?=\\.)")%in%gsub(".csv", "", gsub(pattern = "raw_.*_map_injection_","",maps_done))]
+
 
 #List raw files (for Li-7820 and Li-7810) present in folder_raw
 # go through the RAW data (.txt or .data, not .Rdata, not Licor850)
@@ -60,19 +103,6 @@ raw_files <- list.files(path = folder_raw, pattern = c(".txt|.data"), full.names
 r <- grep(pattern = ".RData|Licor850",x=raw_files)
 raw_files <- raw_files[-r]
 rm(r)
-
-
-#Subset here the rawfiles that contain core injections
-raw_ofinterest<- read.csv(paste0(folder_mapinjections, "/master_map.csv")) %>% 
-  filter(iscoreremark=="yes") %>% 
-  select(path) %>% 
-  distinct %>% 
-  pull(path)
-
-
-#ADAPT TO select name well(everything between the last appearance of "/" and the first appearance of ".")
-#Get raw files without corresponding map injection: 
-raw_files_withoutmap<- raw_ofinterest[!str_extract(raw_ofinterest, "(?<=/)[^/]+(?=\\.)")%in%gsub(".csv", "", gsub(pattern = "raw_.*_map_injection_","",maps_done))]
 
 
 
@@ -98,7 +128,7 @@ for (i in raw_files_withoutmap){
     mutate(Tstart_correct=NA,	Tend_correct=NA,	label_correct=NA, firstlicor_TG10_or_TG20=NA)#Add empty columns to manually correct the data
   
     
-  write.csv(a,file = paste0(folder_mapinjections,"/raw_", gas, "_map_injection_", filename, ".csv"),row.names = F)
+  # write.csv(a,file = paste0(folder_mapinjections,"/raw_", gas, "_map_injection_", filename, ".csv"),row.names = F)
 }
 
 #Clear WP again
