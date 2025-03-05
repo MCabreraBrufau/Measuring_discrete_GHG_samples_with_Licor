@@ -11,7 +11,15 @@
 #IMPORTANT MODIFICATIONS: 
 #This script implements a per-peak baseline correction (as oposed to the original script with the per-remark baseline-correction). This approach should be more consistent for remarks where the baseline is very noisy (i.e. ambient air used as carrier gas). 
 
-#Current per-peak baseline correction is just to subtract the value of the very first "peak" point (4seconds before peak maximum) from all of the "peak" window. 
+
+#Per-peak base-correction consist on substracting from each point included in the integration window the average between the first and last points of the integration window. 
+
+#Local maxima is defined as a point having 1 increase and 2 consecutive decreases + absolute value must be higher than the difference between the highest point in remark and the 25th percentile of remark. Minimum separation between local maxima: 5s
+
+
+####TO TEST#####
+#Check if CH4 works
+#CO2 performs much worse, but no negative peaks, potentially (after inspection) decide to set CO2 integration window based on CH4 peak detection (i.e. detect peaks with CH4 and then integrate CO2 in same time-windows)
 
 
 #Clean WD
@@ -33,7 +41,7 @@ folder_raw <- paste0(r4cs_root,"/GHG/RAW data/RAW Data Licor-7810") #contains un
 folder_mapinjections<- paste0(folder_root,"/Map_injections") #Contains the corrected_master_map.csv with startstop times of injections and their corresponding labels, corrections should be made manually when needed (editting the csvs and re-saving with "corrected_" prefix)
 
 #Folder for plots
-folder_plots<-  paste0(folder_root,"/Integration plots") #One pdf per rawfile (auto-name from rawfile name), plots of each injection sequence (baseline correction & integration)
+folder_plots<-  paste0(folder_root,"/TF_Integration plots") #One pdf per rawfile (auto-name from rawfile name), plots of each injection sequence (baseline correction & integration)
 
 if (!dir.exists(folder_plots)) {
   # If it doesn't exist, create the folder
@@ -41,7 +49,7 @@ if (!dir.exists(folder_plots)) {
 }
 
 #Folder for results
-folder_results<- paste0(folder_root,"/Results_ppm")#One csv per rawfile will be created (auto-name from rawfile name), with individual peak parameters (label, peak_id, peaksum, peakmax, unixtime_ofmax, raw_peaksum, dayofanalysis, SNR)
+folder_results<- paste0(folder_root,"/TF_Results_ppm")#One csv per rawfile will be created (auto-name from rawfile name), with individual peak parameters (label, peak_id, peaksum, peakmax, unixtime_ofmax, raw_peaksum, dayofanalysis, SNR)
 
 if (!dir.exists(folder_results)) {
   # If it doesn't exist, create the folder
@@ -65,9 +73,9 @@ for (f in files.sources){source(f)}
 
 ###1. Check data to integrate####
 
-#Get corrected master map
-
-master_map<-read.csv( paste0(folder_mapinjections,"/corrected_master_map.csv"))
+#Get corrected master map: filter only for TF injections
+master_map<-read.csv( paste0(folder_mapinjections,"/corrected_master_map.csv")) %>% 
+  filter(type_of_measure=="CORE END FLUX")
 
 #Get rawfiles
 rawfiles<- master_map %>% 
@@ -87,7 +95,6 @@ integratedfiles<- list.files(path = folder_results, pattern = "^integrated_injec
 rawtointegrate<- unique(rawfiles[!rawfiles$outfilename%in%gsub(".csv","",gsub("^integrated_injections_[A-Z0-9]{3}_","",integratedfiles)),"path"]) #Not match raw with integratedfiles
 
 
-####TO TEST#####
 
 
 ###2. Integration loop####
@@ -96,11 +103,11 @@ rawtointegrate<- unique(rawfiles[!rawfiles$outfilename%in%gsub(".csv","",gsub("^
 for (i in rawtointegrate){
   rawfilename<- str_extract(i, "(?<=/)[^/]+(?=\\.)")
   
-  message(paste("Integrating peaks from",rawfilename))
+  message(paste("Integrating TF peaks from",rawfilename))
   
   #Import data from rawfile
     raw_data<- read_Licor_TG10(i)
-    gasname <- "CO2_and_CH4"
+  #set gasses to be looped over  
     gasforloop <- c("CO2", "CH4")
   
     
@@ -149,10 +156,18 @@ for (i in rawtointegrate){
       label = character(),
       peak_id = character(),
       peaksum = double(),
+      secondspeak =double(),
+      peak_base= double(),
       peakmax = double(),
       unixtime_ofmax = double(),
       raw_peaksum = double(),
-      peakSNR = double())
+      peakSNR = double(),
+      avg_remark=double(),
+      sd_remark=double(),
+      avg_baseline=double(),
+      sd_baseline=double())
+    
+    
     
     #Initialize data frame for baselines
     # B<- data.frame(
@@ -218,14 +233,18 @@ for (i in rawtointegrate){
         
         #Find local maxima in remark and add max_id (label_1,label_2,...) : 
         #Criteria for local maximum:
-        # at least 1 increase before and 1 decrease after to be considered as local maxima
-        # minimum peak height to be detected is > 1/5 of maximum difference between max point and min point in all remark
-        # at leas 5 points between localmaxima
+        # at least 1 increase before and 2 decrease after to be considered as local maxima
+        # minimum peak height to be detected is > 1/5 of maximum difference between max point and percentil 25% in all remark
+        # at leas 12 points between localmaxima
+        
+        low_boundary_peak<- inj_data %>% summarise(low=quantile(!!sym(gas),0.25)) %>% pull(low) %>% as.numeric()
+        high_boundary_peak<- inj_data %>% summarise(high=max(!!sym(gas),na.rm=T)) %>% pull(high)
+        
         
         inj_data <- inj_data %>%
           mutate(is_localmaxgas = ifelse(row_number() %in% findpeaks(!!sym(gas), 
-                                                                     minpeakheight = (((max(!!sym(gas),na.rm = T)-min(!!sym(gas),na.rm=T))/5)+min(!!sym(gas),na.rm=T)), 
-                                                                     nups=1, ndowns=1,
+                                                                     minpeakheight = ((high_boundary_peak-low_boundary_peak)/5)+low_boundary_peak, 
+                                                                     nups=1, ndowns=2,
                                                                      minpeakdistance = 5)[, 2], TRUE, FALSE)) %>%
           mutate(peak_id = ifelse(is_localmaxgas, paste0(label,"_",cumsum(is_localmaxgas)), NA)) %>%  #Add unique peak_id for each local maximum found 
           ungroup()
@@ -261,22 +280,39 @@ for (i in rawtointegrate){
         
         ##____Peak integration gas#####
         
-        #Get baseline noise to outside the peak areas
-        baseline_sd<-inj_data %>% 
+        #Get baseline avg and SD from outside the peak windows
+        avg_baseline<-inj_data %>% 
+          filter(is.na(peak_id)) %>%
+          summarise(avg=mean(!!sym(gas), na.rm=T)) %>% pull(avg)
+        
+        sd_baseline<-inj_data %>% 
           filter(is.na(peak_id)) %>%
           summarise(baseline_sd=sd(!!sym(gas), na.rm=T)) %>%  ungroup()%>% pull(baseline_sd)
         
-        #Summarise each peak_id (peaksum, peakmax, unixtimeofmax, raw_peaksum, peakSNR)
+        #Get average value for whole remark
+        avg_remark<- inj_data %>% 
+          summarise(avg=mean(!!sym(gas), na.rm=T)) %>% pull(avg)
+        sd_remark<- inj_data %>% 
+          summarise(desv=sd(!!sym(gas), na.rm=T)) %>% pull(desv)
+        
+        #Summarise each peak_id (peaksum, peakmax, unixtimeofmax, raw_peaksum, peakSNR) add avg_remark, sd_remark
         integrated<- inj_data %>% 
           filter(!is.na(peak_id)) %>% #keep only data of peaks
           group_by(label, peak_id) %>% #For each peak_id do the following
-          mutate(gas_bc=!!sym(gas)-first(!!sym(gas))) %>% #Base-corrected timeseries for duration of peak (using the first data point of the peak)
+          mutate(gas_bc=!!sym(gas) - ( (first(!!sym(gas)) + last(!!sym(gas)))/2 ),#Base-corrected timeseries for duration of peak (using average of the first and last data-points of the integration window)
+                 peak_base=((first(!!sym(gas))+last(!!sym(gas)))/2)) %>% 
           summarise(peaksum=sum(gas_bc),
+                    peak_base=mean(peak_base,na.rm=T),
+                    secondspeak=sum(!is.na(gas_bc)),
                     peakmax=max(gas_bc,na.rm = T), 
                     unixtime_ofmax=unixtime[gas_bc==peakmax],
                     raw_peaksum=sum(!!sym(gas)),.groups = "keep") %>%
           mutate(dayofanalysis=dayofanalysis,
-                 peakSNR=peaksum/(3*baseline_sd)) %>% 
+                 peakSNR=peaksum/(3*sd_baseline),
+                 avg_remark=avg_remark,
+                 sd_remark=sd_remark,
+                 avg_baseline=avg_baseline,
+                 sd_baseline=sd_baseline) %>% 
           ungroup()
         
         
@@ -286,7 +322,7 @@ for (i in rawtointegrate){
         peakdataseries<- inj_data %>% 
           filter(!is.na(peak_id)) %>% #keep only data of peaks
           group_by(label, peak_id) %>% #For each peak_id do the following
-          mutate(gas_bc=!!sym(gas)-first(!!sym(gas)))
+          mutate(gas_bc=!!sym(gas) - ( (first(!!sym(gas)) + last(!!sym(gas)))/2 ))
         
         ###____Create integration plots#####
         p<-ggplot()+

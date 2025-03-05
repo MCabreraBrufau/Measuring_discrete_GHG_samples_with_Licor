@@ -35,7 +35,7 @@ if (!dir.exists(folder_mapinjections)) {
 # ---- packages & functions ----
 library(tidyverse)
 library(readxl)
-
+library(lubridate)
 #Import functions of repo 
 repo_root <- dirname(dirname(rstudioapi::getSourceEditorContext()$path))
 files.sources = list.files(path = paste0(repo_root,"/functions"), full.names = T)
@@ -45,14 +45,27 @@ for (f in files.sources){source(f)}
 
 ##--Import master_map-----
 #Import master_map with Carlos details
-master_map_raw<- read_xlsx(paste0(r4cs_root, "/Cores/map_incubations+UVEG info.xlsx")) 
+
+master_map_raw<- read_xlsx(paste0(r4cs_root, "/Cores/map_incubations+UVEG info.xlsx"),
+                           #take only 1st, 6th, 9th and onwards columns
+                           col_types = c("text", #type of meaure
+                                         "skip","skip","skip","skip", #skip t0co2, t0ch4, headps, water
+                                         "numeric", #vol_inj_ml
+                                         "skip","skip", #skip corestart, coreend
+                                         "text",#label_revised_carlos,
+                                         "date",#date
+                                         "text",#label
+                                         "numeric","numeric",#start, stop (unixtime)
+                                         "skip","skip","skip","skip", #skip timestart,timestop, folder, file
+                                         "text")) #path
 
 #Filter and add new-format
 master_map_tocorrect<- master_map_raw %>% 
   filter(!is.na(type_of_measure)) %>% 
-  select(type_of_measure, vol_inj_ml,label_revised_carlos,label,date,start,stop,path) %>% 
+  select(type_of_measure, vol_inj_ml,label_revised_carlos,date,label,start,stop,path) %>% 
   mutate(Tstart= format(as.POSIXct(start, origin="1970-01-01", tz="UTC"),"%H:%M:%S"),
          Tstop= format(as.POSIXct(stop, origin="1970-01-01", tz="UTC"),"%H:%M:%S"),
+         date=format(date, "%d/%m/%Y"), #date as text of format dd/mm/yyyy
          remark_duration=stop-start,
          rawfilename=str_extract(path, "(?<=/)[^/]+(?=\\.)"),
          remarkid=paste0(start,label),
@@ -66,12 +79,14 @@ corrected_master<- read.csv( paste0(folder_mapinjections,"/corrected_master_map.
   #filter corrected lines only
   filter(!is.na(label_correct)) %>% 
   #select only remarkid and corrected columns
-  select(remarkid, Tstart_correct,Tend_correct,label_correct,obs_CO2_plot,obs_CH4_plot)
+  #ADD essential columns for splitted remarks: date, path
+  select(remarkid, date, path, Tstart_correct,Tend_correct,label_correct,obs_CO2_plot,obs_CH4_plot)
+
 
 #add corrected data to master_tocorrect
 master_map_tocorrect <- master_map_tocorrect %>% 
   select(-c(Tstart_correct,Tend_correct,label_correct,,obs_CO2_plot,obs_CH4_plot)) %>% #Remove corrected columns (filled with NAs)
-  merge.data.frame(corrected_master, by = "remarkid",all = T)#add corrected values, rest filled with NAs
+  merge.data.frame(corrected_master, by = c("remarkid","date","path"),all = T)#add corrected values, rest filled with NAs
 }
 
 #Save in folder_mapinjections
