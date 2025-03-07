@@ -79,14 +79,14 @@ corrected_master<- read.csv( paste0(folder_mapinjections,"/corrected_master_map.
   #filter corrected lines only
   filter(!is.na(label_correct)) %>% 
   #select only remarkid and corrected columns
-  #ADD essential columns for splitted remarks: date, path
-  select(remarkid, date, path, Tstart_correct,Tend_correct,label_correct,obs_CO2_plot,obs_CH4_plot)
+  #ADD essential columns for splitted remarks: date, path, type_of_measure
+  select(remarkid, date, path, type_of_measure, Tstart_correct,Tend_correct,label_correct,obs_CO2_plot,obs_CH4_plot)
 
 
 #add corrected data to master_tocorrect
 master_map_tocorrect <- master_map_tocorrect %>% 
   select(-c(Tstart_correct,Tend_correct,label_correct,,obs_CO2_plot,obs_CH4_plot)) %>% #Remove corrected columns (filled with NAs)
-  merge.data.frame(corrected_master, by = c("remarkid","date","path"),all = T)#add corrected values, rest filled with NAs
+  merge.data.frame(corrected_master, by = c("remarkid","date","path","type_of_measure"),all = T)#add corrected values, rest filled with NAs
 }
 
 #Save in folder_mapinjections
