@@ -15,7 +15,7 @@ rm(list=ls())
 #Usually you will be working on your working directory
 #folder_root <- dirname(rstudioapi::getSourceEditorContext()$path)
 #But you can set the folder in other path
-folder_root <- "C:/Users/Miguel/Dropbox/Licor_N2O"
+folder_root <- "C:/Users/Miguel/Dropbox/Licor_cores_UVEG"
 # folder_root <- "/home/jorge/Documentos/Postdoctoral/Onedrive_UB/UB/NaturBPond/GHG/Pond_element_flux/December/Discrete_samples" # You have to make sure this is pointing to the write folder on your local machine
 
 #Here is the repo root, if we keep the code (scripts and calibration) in a repository (github) and 
@@ -23,8 +23,8 @@ folder_root <- "C:/Users/Miguel/Dropbox/Licor_N2O"
 repo_root <- dirname(rstudioapi::getSourceEditorContext()$path)
 
 #Data folders
-folder_calibration <- paste0(repo_root,"/calibration")
-folder_results<- paste0(folder_root,"/Results_ppm")
+folder_calibration <- paste0(folder_root,"/calibration_uveg")
+folder_results<- paste0(folder_root,"/TF_Results_ppm")
 
 
 
@@ -44,7 +44,7 @@ ppmfiles<- list.files(path = folder_results, pattern = "^.*ppm_samples_")
 integratedtoppm<- gsub(".csv","",gsub("integrated_injections_","",integratedfiles[
   !gsub(".csv","",gsub("integrated_injections_","",integratedfiles))%in%gsub(".csv","",gsub("^.*ppm_samples_","",ppmfiles))]))#  integrated files "rawcode" without corresponding ppmfiles "rawcode"
   
-#Get calibration curve
+#Get calibration curve: test with the UB calibration for the moment 
 calibration <- read_csv(paste0(folder_calibration, "/Calibration_and_limit_of_detection_2024-12-12.csv"),show_col_types = F)
 
 for (i in integratedtoppm){
@@ -57,11 +57,13 @@ for (i in integratedtoppm){
   #Load integrated peaks of integratedfile i
   int<- read.csv(paste0(folder_results,"/","integrated_injections_",i,".csv"))
 
-    
+    #Using the UB calibration (baseline==0ppm), and then adding on top the peak_base
     peak_ppm<- int %>% 
       separate(peak_id, into = c("sample", "ml_injected","peak_no"), sep = "_",remove = F) %>% 
-      mutate(ml_injected=as.numeric(gsub("[^0-9.]", "", ml_injected)), !!paste0(gasname, "_ppm") := ((peaksum-intercept))/(slope*ml_injected)) %>% 
-      select(dayofanalysis, sample, ml_injected, peak_id, !!paste0(gasname, "_ppm"), unixtime_ofmax) %>% 
+      mutate(ml_injected=as.numeric(gsub("[^0-9.]", "", ml_injected)), 
+             !!paste0(gasname, "_ppm") := ((peaksum-intercept))/(slope*ml_injected) + (peak_base/1000),
+             peakbaseline_ppm=peak_base/1000) %>%
+      select(dayofanalysis, sample, ml_injected, peak_id, !!paste0(gasname, "_ppm"), unixtime_ofmax, peakSNR,peakbaseline_ppm) %>% 
       mutate(datetime=as.POSIXct(unixtime_ofmax))
 
   #Save ppm of peaks

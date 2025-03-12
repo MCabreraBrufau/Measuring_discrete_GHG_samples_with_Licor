@@ -89,6 +89,12 @@ master_map_tocorrect <- master_map_tocorrect %>%
   merge.data.frame(corrected_master, by = c("remarkid","date","path","type_of_measure"),all = T)#add corrected values, rest filled with NAs
 }
 
+#reorder master_map_tocorrect
+master_map_tocorrect<-master_map_tocorrect %>% 
+  mutate(datetoorder=as.POSIXlt.character(date, format="%d/%m/%Y")) %>% 
+  arrange(type_of_measure, datetoorder,Tstart_correct) %>% 
+  select(-datetoorder)
+
 #Save in folder_mapinjections
 write.csv(master_map_tocorrect, file = paste0(folder_mapinjections,"/tocorrect_master_map.csv"),row.names = F)
 
@@ -98,7 +104,7 @@ write.csv(master_map_tocorrect, file = paste0(folder_mapinjections,"/tocorrect_m
 #Iterative process, to modify anything, always start with tocorrect_master_map file and save changes as corrected_master_map
 
 
-
+str(master_map_tocorrect$datetoorder)
 
 
 
