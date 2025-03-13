@@ -4,22 +4,12 @@
 # This script has been modified from https://github.com/MCabreraBrufau/Licor_N2O_scripts to identify and integrate peak not only for N2O but also for CO2 and CH4
 # ---
 
-#Before running this script, you must run "Map_injections.R" script, and modify and save the "corrected_XXX_map_injection..." file manually. You can copy directly the Tstart, Tend and label from the raw_mapinjection OR edit if you have something to change.  With the new updated processing script you also need to specify in "corrected_XXX_map_injection..."which Licor was connected upstream (i.e. first in receiving the injected sample): options are "TG20" (for LicorN2O first) OR "TG10" (for LicorCH4&CO2 first).This info is used to set the width of integration windows according to the upstream-downstream position of the Licors. 
-
-#Description: this script takes raw-files from Li-COR 7820 and Li-COR 7810 containing discrete injections, corrected injection_sequences (with label, start and stop) and calculates integrated peaks along with signal-to-noise ratio for each injection. It also generates inspection plots (baseline correction & integration) and stores the results in csv format. It also extracts the baseline data for ambient lab air and zero-Air from cylinder. 
-
-#IMPORTANT MODIFICATIONS: 
-#This script implements a per-peak baseline correction (as oposed to the original script with the per-remark baseline-correction). This approach should be more consistent for remarks where the baseline is very noisy (i.e. ambient air used as carrier gas). 
+#Peak detection has been based on a supervised automated approach by running the script:"2_TF_uveg_detect_injections CO2CH4.R" 
+#Detected peaks have been manually reviewed and wrong peaks discarded when needed. All detected peaks and their decisions are logged in csv file alldetected_peaks_touse_correct.csv
 
 
+#This script implements a per-peak baseline correction rather than a per-remark baseline correction.
 #Per-peak base-correction consist on substracting from each point included in the integration window the average between the first and last points of the integration window. 
-
-#Local maxima is defined as a point having 1 increase and 2 consecutive decreases + absolute value must be higher than the difference between the highest point in remark and the 25th percentile of remark. Minimum separation between local maxima: 5s
-
-
-####TO TEST#####
-#Check if CH4 works
-#CO2 performs much worse, but no negative peaks, potentially (after inspection) decide to set CO2 integration window based on CH4 peak detection (i.e. detect peaks with CH4 and then integrate CO2 in same time-windows)
 
 
 #Clean WD
