@@ -75,7 +75,7 @@ for (f in files.sources){source(f)}
 
 #Get corrected master map: filter only for TF injections
 master_map<-read.csv( paste0(folder_mapinjections,"/corrected_master_map.csv")) %>% 
-  filter(type_of_measure=="mix")
+  filter(type_of_measure=="mix"&!is.na(label_correct))
 
 #Get rawfiles
 rawfiles<- master_map %>% 
@@ -106,8 +106,8 @@ for (i in rawtointegrate){
   
   #Import data from rawfile
   raw_data<- read_Licor_TG10(i)
+  
   #set gasses to be looped over 
-  # gasforloop <- c("CO2", "CH4")
   gasforloop <- c("CH4") #ONLY CH4 for TFmix 
   
   
@@ -126,16 +126,9 @@ for (i in rawtointegrate){
   
   daystoloop<- unique(mapinj$date)
   
-  # read.csv(paste0(folder_mapinjections,"/","corrected_", gasname,"_map_injection_",i,".csv")) %>% 
-  # filter(!is.na(label_correct)) %>% 
-  # filter(label_correct!="") %>% 
-  # select(-date)
-  
   #Loop over dayofanalysis on mapinj
   for(dayofanalysis in daystoloop){
     
-    # dayofanalysis <- read.csv(paste0(folder_mapinjections,"/","raw_", gasname, "_map_injection_",i,".csv")) %>% 
-    # select(date) %>% pull() %>% unique()
     datetoprint<- dmy(dayofanalysis)
     
     # mapinj$date <- dayofanalysis
@@ -164,21 +157,12 @@ for (i in rawtointegrate){
         peakSNR = double(),
         avg_remark=double(),
         sd_remark=double(),
+        n_remark=double(),
         avg_baseline=double(),
-        sd_baseline=double())
+        sd_baseline=double(),
+        n_baseline=double())
       
       
-      
-      #Initialize data frame for baselines
-      # B<- data.frame(
-      #   dayofanalysis=character(),
-      #   label = character(),
-      #   base_avg = double(),
-      #   base_sd = double(),
-      #   base_cv = double(),
-      #   base_n = integer(),
-      #   stringsAsFactors = FALSE
-      # )
       
       #Initialize list of plots to save integration plots
       plotspeak <- list()
@@ -191,43 +175,20 @@ for (i in rawtointegrate){
         
         #Unixend, Tend_correct from mapinj in unix time format
         unixend<- as.numeric(dmy_hms(paste(mapinj[mapinj$label_correct==inj,]$date,mapinj[mapinj$label_correct==inj,]$Tend_correct), tz = "UTC"))
-        #FirstLicor, TG10 or TG20 from mapinj 
-        # firstlicor<- mapinj[mapinj$label_correct==inj,]$firstlicor_TG10_or_TG20
+
         
         #Subset data from injection sequence inj 
         inj_data<- raw_data[between(raw_data$unixtime, unixstart,unixend),]  
         
-        # raw_data %>% filter(between(unixtime, unixstart,unixend)) %>% mutate(secondsincestart=unixtime-unixstart)
         #Make sure whole inj_data has the correct label inj
         inj_data$label<- inj
         
-        ######2.1. Baselines #####
-        if (grepl("baseline", inj)){
-          print(paste0('Baseline recording: ',inj))
-          
-          #calculate descriptive statistics for baseline
-          b<- inj_data %>% 
-            summarise(base_date=dayofanalysis,
-                      label=inj,
-                      base_avg= mean(!!sym(gas),na.rm = T), 
-                      base_sd= sd(!!sym(gas),na.rm=T),
-                      base_cv=base_sd/base_avg,
-                      base_n= n())
-          
-          #Add baseline statistics to baseline table
-          B<- rbind(B,b)
-        } 
-        
+
         ###2.2. Injections#####
-        else {
+{
           print(paste0("Injection sample: ", inj))
           
           #Detect and integrate peaks, plot results, calculate  baseline SD within label for Signal to Noise ratio
-          
-          # ##____Base-correction# (OLD)
-          # #Base-correct injection sequence, using asymetric least-square. 
-          # inj_data<-inj_data %>% 
-          #   mutate(gas_bc=baseline.corr(!!sym(gas),lambda=1e5, p=0.0001))
           
           ##____Peak-max detection#####
           
@@ -280,20 +241,24 @@ for (i in rawtointegrate){
           
           ##____Peak integration gas#####
           
-          #Get baseline avg and SD from outside the peak windows
+          #Get baseline AVG, SD and N (data only outside peak windows)
           avg_baseline<-inj_data %>% 
             filter(is.na(peak_id)) %>%
             summarise(avg=mean(!!sym(gas), na.rm=T)) %>% pull(avg)
-          
           sd_baseline<-inj_data %>% 
             filter(is.na(peak_id)) %>%
-            summarise(baseline_sd=sd(!!sym(gas), na.rm=T)) %>%  ungroup()%>% pull(baseline_sd)
+            summarise(baseline_sd=sd(!!sym(gas), na.rm=T)) %>% pull(baseline_sd)
+          n_baseline<-inj_data %>% 
+            filter(is.na(peak_id)) %>%
+            summarise(baseline_n=sum(!is.na(!!sym(gas))))%>% pull(baseline_n)
           
-          #Get average value for whole remark
+          #Get remark AVG, SD and N 
           avg_remark<- inj_data %>% 
             summarise(avg=mean(!!sym(gas), na.rm=T)) %>% pull(avg)
           sd_remark<- inj_data %>% 
             summarise(desv=sd(!!sym(gas), na.rm=T)) %>% pull(desv)
+          n_remark<-inj_data %>% 
+            summarise(remark_n=sum(!is.na(!!sym(gas)))) %>% pull(remark_n)
           
           #Summarise each peak_id (peaksum, peakmax, unixtimeofmax, raw_peaksum, peakSNR) add avg_remark, sd_remark
           integrated<- inj_data %>% 
@@ -311,10 +276,11 @@ for (i in rawtointegrate){
                    peakSNR=peaksum/(3*sd_baseline),
                    avg_remark=avg_remark,
                    sd_remark=sd_remark,
+                   n_remark=n_remark,
                    avg_baseline=avg_baseline,
-                   sd_baseline=sd_baseline) %>% 
+                   sd_baseline=sd_baseline,
+                   n_baseline=n_baseline) %>% 
             ungroup()
-          
           
           avg_peaksum<- mean(integrated$peaksum)
           sd_peaksum<- sd(integrated$peaksum)
@@ -361,8 +327,6 @@ for (i in rawtointegrate){
         
       } 
       
-      #Save baseline statistics of rawfile i 
-      # write.csv(B,file = paste0(folder_results,"/", "baselines_",gas, "_", rawfilename, ".csv"),row.names = F)
       
       #Save areas of injections for rawfile i   
       write.csv(A,file = paste0(folder_results,"/", "integrated_injections_",gas, "_",datetoprint, rawfilename, ".csv"),row.names = F)

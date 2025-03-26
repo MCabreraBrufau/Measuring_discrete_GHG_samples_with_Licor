@@ -1,7 +1,7 @@
-#Export all N2O CO2 and CH4 concentrations (ppm) to RESTORE4Cs dropbox
+#Export all CO2 and CH4 concentrations (ppm) to RESTORE4Cs dropbox
 
 
-#This script loads all Licor-derived concentrations in Results_ppm folder, filters for injections from cores, and saves all data into Restore4Cs folder for cores.
+#This script loads all Licor-derived concentrations in TF_Results_ppm folder, filters for injections from cores, and saves all data into Restore4Cs folder for cores.
 
 
 #Clean WD
@@ -11,14 +11,13 @@ rm(list=ls())
 #Packages
 library(tidyverse)
 library(readxl)
-
+library(ggpmisc)
 
 #Directories
-folder_data<- "C:/Users/Miguel/Dropbox/Licor_N2O/"
-folder_resuts<- paste0(folder_data,"Results_ppm/")
-# folder_samplelist<- paste0(folder_data, "Samplelist/")
+folder_root <- "C:/Users/Miguel/Dropbox/Licor_cores_UVEG/"
+folder_resuts<- paste0(folder_root,"TF_Results_ppm/")
 
-folder_export<- "C:/Users/Miguel/Dropbox/RESTORE4Cs - Fieldwork/Data/Cores/UB_concentrations/"
+folder_export<- "C:/Users/Miguel/Dropbox/RESTORE4Cs - Fieldwork/Data/Cores/UVEG_concentrations/"
 
 
 ##---1. Import & format----
@@ -52,24 +51,22 @@ for(i in CH4ppmfiles){
 }
 
 
-#CHECK MISSMATCHES between CO2 and CH4: detect integration errors for CO2
-print(co2[!co2$peak_id%in%ch4$peak_id,],n=50)
-#S4-CA-R2-27 CH4 too high, co2 peak detection failed. Headspace sample most likely, 2025-02-05
-#S4-CU-A1-3 CH4 too high and noisy baseline, co2 peak detection failed. Headspace sample most likely, 2025-02-06
-#S4-DA-A2-6f CH4 too high, co2 peak detection failed. 2025-02-20
-#S4-DA-R1-5f CH4 too high, co2 peak detection failed. 2025-02-20
+
+#Check: same peaks for both gasses?
+unique(co2$peak_id%in%ch4$peak_id)
+unique(ch4$peak_id%in%co2$peak_id)
+
 
 
 #Format to join (create column gas and rename ppm)
-n2o<- n2o %>% rename(ppm=N2O_ppm) %>% mutate(gas="n2o")
+# n2o<- n2o %>% rename(ppm=N2O_ppm) %>% mutate(gas="n2o")
 co2<- co2 %>% rename(ppm=CO2_ppm) %>% mutate(gas="co2")
 ch4<- ch4 %>% rename(ppm=CH4_ppm) %>% mutate(gas="ch4")
 
 
 #Join datasets
-all<- rbind(n2o,co2, ch4)
-rm(n2o,co2,ch4)
-
+all<- rbind(co2, ch4)
+rm(co2,ch4)
 
 #Filter for core injections only
 cores<- all %>% 
@@ -77,12 +74,167 @@ cores<- all %>%
   filter(grepl("i|f", sample)) %>%  # keep only cores (t0 ends in "i", tf ends in "f")
   separate(peak_id, into=c("sample","ml_text","peak_num"),sep = "_", remove = F) %>% 
   mutate(remark=paste0(sample,"_",ml_text)) %>% 
+  filter(!is.na(ml_injected)) %>% 
+  filter(ml_injected<1) %>% 
   select(-c(ml_text,peak_num))
 
+#Check what other sample  codes are in "all"
+notcores<- all %>% filter(!sample%in%cores$sample)
+
+
+
+##1.2.UB-UVEG Calibration####
+
+#As we do not have calibration data for UVEG licor, we adjusted the UB calibration based on the intercomparison of samples analyzed with both instruments. 
+
+#To test calibration, subset the dataset to samples with at least 2 injections of peakSNR>5 and cv_ppm <0.1 (10%)
+uveg_best<- cores %>% 
+  filter(peakSNR>2) %>% 
+  select(sample,gas,dayofanalysis,ppm) %>% 
+  group_by(sample, gas,dayofanalysis) %>% 
+  summarise(avg_ppm=mean(ppm, na.rm=T),
+            sd_ppm= sd(ppm, na.rm=T),
+            cv_ppm=abs(sd_ppm/avg_ppm),
+            n_injections=sum(!is.na(ppm))) %>% 
+  ungroup() %>% 
+  filter(n_injections>=2) %>% 
+  filter(cv_ppm<0.1) %>% 
+  mutate(samplegas=paste(sample, gas, sep = "_")) %>% 
+  select(samplegas, gas, avg_ppm, sd_ppm,cv_ppm, n_injections) %>% 
+  filter(!grepl("^S1",samplegas))
+
+
+#Load UB-data
+ub<- read.csv(file = "C:/Users/Miguel/Dropbox/RESTORE4Cs - Fieldwork/Data/Cores/UB_concentrations/N2O_CO2_CH4_ppm_exetainer_avg_sd_n.csv")
+
+
+ub_match<- ub %>% 
+  mutate(samplegas=paste(sample, gas, sep = "_")) %>% 
+  filter(samplegas%in%uveg_best$samplegas)%>% 
+  select(samplegas, gas, avg_ppm, sd_ppm,cv_ppm, n_injections) %>% 
+  rename(avg_ppmub=avg_ppm, sd_ppmub=sd_ppm, cv_ppmub=cv_ppm, n_injectionsub=n_injections)
+
+
+#Join data from both methods and log-transform
+compare<- uveg_best %>% 
+  left_join(ub_match, by=c("samplegas","gas")) %>% 
+  mutate(log_ppmub=log(avg_ppmub), log_ppmuveg=log(avg_ppm)) %>% 
+  filter(!(gas=="ch4"&avg_ppmub>750))#remove 2 extreme values
+
+#Comparison in ppm
+compare %>% 
+  ggplot( aes(x=avg_ppmub, y= avg_ppm))+
+  geom_point()+
+  geom_abline(slope = 1,intercept = 0)+
+  geom_smooth(method = "lm")+
+  stat_poly_eq(formula = y ~ x, 
+               aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")))+
+  facet_wrap(~gas, scales="free")
+
+#Comparson in log-transformed ppm
+compare %>% 
+ggplot( aes(x=log_ppmub, y= log_ppmuveg))+
+  geom_point()+
+  geom_abline(slope = 1,intercept = 0)+
+  geom_smooth(method = "lm")+
+  stat_poly_eq(formula = y ~ x, 
+               aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")))+
+  facet_wrap(~gas, scales="free")
+
+#Relative difference between methods
+ggplot(compare, aes(x=gas, y= (avg_ppm-avg_ppmub)/avg_ppmub))+
+  geom_boxplot()+
+  ggtitle("Relative difference between methods")
+
+
+ggplot(compare, aes(x=log_ppmub, y= (avg_ppm-avg_ppmub)/avg_ppmub*100))+
+  geom_point()+
+  scale_y_continuous(name="Relative difference (%)", breaks = seq(-100,100,by=10))+
+  ggtitle("Relative difference between methods")+
+  facet_wrap(~gas, scales="free")
+
+
+
+#CO2 moldel between the two methods
+#Fit linear model on log-transformed values
+co2difmodel<- lm(log_ppmuveg~log_ppmub,data = compare %>% filter(gas=="co2"))
+
+# predict in the range of observations and get average overestimation value (aproximation of intercept, in this case mean overestimation of uveg method)
+range_co2_logppm<-compare %>% filter(gas=="co2") %>% 
+  summarise(max_log_ppmub=max(log_ppmub,na.rm=T),
+            min_log_ppmub=min(log_ppmub,na.rm=T))
+
+#Observe the overestimation from UVEG method based on the log-transformed regression
+overestimation_co2<- data.frame(log_ppmub=seq(range_co2_logppm$min_log_ppmub,
+                                              range_co2_logppm$max_log_ppmub, by=0.05)) %>% 
+  mutate(predicted=predict(co2difmodel,newdata = .)) %>% 
+  mutate(predicted_ppm=exp(predicted),
+         observed_ppm=exp(log_ppmub),
+         overestimate_ppm=predicted_ppm-observed_ppm)
+
+#CO2 method difference with the adjusted calibration slope for UVEG: i.e. this represent the deviation of the log-log regression line from the 1:1 line.
+ggplot(overestimation_co2, aes(x=predicted_ppm, y=overestimate_ppm/predicted_ppm*100))+
+  geom_point()+
+  scale_y_continuous(name="Relative method difference (% CO2)")+
+  ggtitle("Modeled overestimation over the range measured")
+
+
+#CH4 between the two methods
+#Fit linear model on log-transformed values
+ch4difmodel<- lm(log_ppmuveg~log_ppmub,data = compare %>% filter(gas=="ch4"))
+
+# predict in the range of observations and get average overestimation value (aproximation of intercept, in this case mean overestimation of uveg method)
+range_ch4_logppm<-compare %>% filter(gas=="ch4") %>% 
+  summarise(max_log_ppmub=max(log_ppmub,na.rm=T),
+            min_log_ppmub=min(log_ppmub,na.rm=T))
+
+#Observe the overestimation from UVEG method based on the log-transformed regression
+overestimation_ch4<- data.frame(log_ppmub=seq(range_ch4_logppm$min_log_ppmub,
+                                              range_ch4_logppm$max_log_ppmub, by=0.05)) %>% 
+  mutate(predicted=predict(ch4difmodel,newdata = .)) %>% 
+  mutate(predicted_ppm=exp(predicted),
+         observed_ppm=exp(log_ppmub),
+         overestimate_ppm=predicted_ppm-observed_ppm)
+
+#CH4 is underestimated for low-values (-6.5% maximum underestimation with respect to UB injections) This is ok-ish
+ggplot(overestimation_ch4, aes(x=predicted_ppm, y=overestimate_ppm/predicted_ppm*100))+
+  geom_point()+
+  scale_y_continuous(name="Relative method difference (% CH4)", limits = c(-10,10))+
+  ggtitle("Relative CH4 overestimation over the range measured")
+
+
+
+
+#Adjusted slopes are appropiate to approximate UVEG values for S1 measured with Licor and for Mixes. 
+
+#Summary of comparison:
+compare %>% 
+  group_by(gas) %>% 
+  mutate(ppmdif=avg_ppm-avg_ppmub,
+         ppmreldif=ppmdif/avg_ppmub*100) %>% 
+  summarise(avg_percentreldif=mean(ppmreldif, na.rm=T),
+            sd_percentreldif=sd(ppmreldif, na.rm=T),
+            n_reldif=sum(!is.na(ppmreldif)),
+            se_percentreldif=sd_percentreldif/sqrt(n_reldif))
+
+
+
+rm(compare, ub,ub_match, uveg_best, ch4difmodel,co2difmodel,overestimation_ch4, overestimation_co2, range_ch4_logppm, range_co2_logppm)
 
 ##---2. Inspect & clean----
 
+#####HERE------
+#Here we have to perform the selection of injections based on their deviation and on the inspection plots, we will keep the average peakbaseline value when no peak is detected.
+
+#Peak detection will be based on peakSNR (peakarea/3*baseline_sd): custom threshold after exploration
+
+#Peaks not detected with peakSNR will be visually inspected to determine whether we use them as peaks (area*slope + peakbase) or we keep the value of the baseline (one of peakbase_ppm, nopeakbase_avg_ppm,remark_avg_ppm). 
+
+#With 
+
+
 test<- cores %>% 
+  mutate(season=substr(sample,1,2)) %>% 
   group_by(sample, gas) %>% 
   mutate(avg_ppm=mean(ppm, na.rm=T),
          sd_ppm= sd(ppm, na.rm=T),
@@ -92,134 +244,94 @@ test<- cores %>%
 test %>% 
   ggplot(aes(x=cv_ppm, fill=gas)) +
   geom_histogram()+
-  facet_wrap(~gas, scales="free")
+  facet_grid(season~gas, scales="free")
+
 
 test %>% 
-  ggplot(aes(x=dayofanalysis, y=cv_ppm))+
-  geom_point()+
-  scale_y_continuous(limits = c(0,0.2))+
-  facet_wrap(~gas, scales="free")
-
-
-#N2O inspection: 
-#Inspect samples with very high cv and clean individual peaks.
-test %>% 
-  filter(gas=="n2o") %>% 
-  # filter(dayofanalysis=="2025-02-07") %>% 
-  filter(!peak_id%in%n2o_peakout) %>% 
-  filter(!dayofanalysis%in%n2o_daysinspected) %>%
-  filter(!remark%in%n2o_negative_remarks) %>% 
-  group_by(sample, gas) %>% 
-  mutate(avg_ppm=mean(ppm, na.rm=T),
-         sd_ppm= sd(ppm, na.rm=T),
-         cv_ppm=abs(sd_ppm/avg_ppm)) %>% 
-  filter(cv_ppm>0.05) %>%
-  ggplot(aes(x=sample, y=ppm, col=factor(dayofanalysis)))+
-  geom_point()+
-  geom_label(aes(label=peak_id))
-
-#N2O data already inspected (per day of injection)
-n2o_peakout<- c("S2-CU-A2-2f_0.1_1","S2-CU-A2-2f_0.1_3","S2-CU-A2-2f_0.1_5", "S2-CU-A1-5f_0.8_1", #2025-02-11
-                "S3-CU-R1-2f_0.4_1","S3-CU-A1-6f_0.8_3","S3-CU-P1-1f_0.8_2","S4-DU-A2-2f_0.8_2","S4-DU-A2-3f_0.8_2", #2025-02-07
-                "S3-DU-A1-1f_0.8_1","S3-DU-A2-5f_0.8_1",#2025-02-10
-                "S2-CA-A2-4f_0.8_1","S2-CA-R2-5f_0.8_2","S2-DA-P2-1i_1_2",# 2025-02-12
-                #2025-02-13 N2O all good
-                "S2-RI-R1-5i_1_2",#2025-02-14
-                #2025-02-17 all good
-                #2025-02-18 all good
-                "S3-VA-R1-2f_0.8_1",#2025-02-19
-                "S4-CA-A2-4f_0.2_1","S4-CA-A2-4f_0.6_2","S4-CA-A2-4f_0.4_1","S4-DA-A2-5f_0.1_2","S4-DA-A2-5f_0.1_3","S4-DA-A2-5f_0.2_1","S4-DA-R1-3f_0.4_1","S4-DA-R1-3f_0.2_3","S4-DA-R1-4f_0.8_1","S4-DA-R1-4f_0.2_1","S4-DA-R1-5f_0.4_1","S4-DA-R1-5f_0.2_1","S4-DA-R1-5f_0.8_1","S4-DA-R1-6f_0.4_1",#2025-02-20
-                "S4-CA-P2-2f_0.8_1","S4-VA-P1-1i_1_2",#2025-02-21
-                "S4-CU-A2-5i_1_3","S4-RI-P1-4f_0.8_1","S4-RI-P2-3i_1_2")#2025-02-24
-#2025-02-26 good
-
-n2o_negative_remarks<- c("S4-DA-A2-6f_0.8","S4-DA-A2-6f_0.6","S4-DA-A2-6f_0.4","S4-DA-A2-6f_0.2","S4-DA-A2-6f_0.1")
-
-n2o_daysinspected<- c("2025-02-11","2025-02-10","2025-02-07","2025-02-12","2025-02-13","2025-02-14","2025-02-17","2025-02-18","2025-02-19","2025-02-20","2025-02-21","2025-02-24","2025-02-26")
-
-
-
-
+  select(season, sample, gas, cv_ppm) %>%
+  distinct() %>% 
+  group_by(gas, season) %>%
+  mutate(lowvar=cv_ppm<0.05) %>% 
+  summarise(good=sum(lowvar,na.rm = T),
+            total=n(),
+            percent=good/total*100) %>% 
+  select(season, gas, percent, good, total) %>% 
+  arrange(season,gas)
+  
 #CH4 inspection: 
 #Inspect samples with very high cv and clean individual peaks.
 test %>% 
+  mutate(sampling=substr(sample, 1,5)) %>% 
   filter(gas=="ch4") %>% 
+  filter(sampling=="S2-CA") %>% 
   filter(!peak_id%in%ch4_peakout) %>% 
-  filter(!dayofanalysis%in%ch4_daysinspected) %>% 
-  # filter(!sample%in%c("S4-DA-A2-1i","S4-DA-A2-1f","S4-DA-A2-3f","S4-DA-A2-4f","S4-DA-P2-1i","S4-DA-A2-2f","S4-DA-R1-5f")) %>% 
+  filter(!sample%in%c(ch4_samplesinspected,ch4_customprocess,ch4_samples4peakbase)) %>% 
   group_by(sample, gas) %>% 
   mutate(avg_ppm=mean(ppm, na.rm=T),
          sd_ppm= sd(ppm, na.rm=T),
          cv_ppm=abs(sd_ppm/avg_ppm)) %>% 
   filter(cv_ppm>0.05) %>%
   arrange(desc(cv_ppm)) %>% 
-  ggplot(aes(x=sample, y=ppm, col=factor(dayofanalysis)))+
+  ggplot(aes(x=factor(round(cv_ppm,3)), y=ppm, col=factor(sampling)))+
   geom_point()+
   geom_label(aes(label=peak_id))
 
-#CH4 data already inspected (per day of injection)
-ch4_peakout<- c("S2-CU-A1-5f_0.8_1",#2025-02-11
-                "S3-CU-A1-6f_0.8_3","S3-CU-A2-5f_0.8_1","S3-CU-P1-1f_0.8_2","S3-CU-R1-3f_0.8_1","S3-CU-R1-4f_0.8_1","S4-DU-A2-2f_0.8_2","S4-DU-A2-6f_0.8_4",  #2025-02-07
-                "S3-DU-A1-1f_0.8_1","S3-DU-A2-5f_0.8_1",#2025-02-10
-                "S2-CA-A1-5f_0.8_1","S2-DA-P2-1i_1_2",# 2025-02-12
-                "S2-DA-A1-1i_1_3","S2-DU-A1-6f_0.8_1",#2025-02-13
-                "S2-RI-R1-5i_1_2",#2025-02-14
-                #2025-02-17 all good
-                "S3-VA-P1-3f_0.8_1", #2025-02-18
-                #2025-02-19 good
-                "S4-DA-P2-1i_1_1","S4-DA-R1-3f_0.4_1","S4-DA-R1-3f_0.8_1","S4-CA-A2-1f_0.8_1","S4-DA-R1-6f_0.8_1","S4-DA-R1-6f_0.4_1","S4-DA-R1-1f_0.8_1","S4-DA-R1-1f_0.4_1","S4-CA-A2-5f_0.8_1","S4-DA-R1-4f_0.2_1","S4-DA-R1-4f_0.4_1","S4-CA-A2-4f_0.2_1","S4-CA-A2-4f_0.6_3","S4-CA-A2-4f_0.4_1","S4-DA-R1-2f_0.8_1","S4-DA-P1-1f_0.8_1","S4-DA-A2-6f_0.8_1", "S4-DA-A2-6f_0.4_1","S4-DA-R1-5f_0.6_2","S4-DA-P1-2f_0.8_1","S4-DA-A2-5f_0.2_1","S4-DA-A2-4f_0.8_1",#2025-02-20
-                "S4-CA-R2-5f_0.8_1","S4-VA-R1-1f_0.8_4","S4-VA-R1-6f_0.8_4","S4-CA-P2-2f_0.8_1","S4-VA-P1-1i_1_2",#2025-02-21
-                "S4-CU-A2-5i_1_3","S4-RI-P1-4f_0.8_1","S4-RI-P2-3i_1_2")#2025-02-24
-#2025-02-26 good
 
-ch4_daysinspected<- c("2025-02-11","2025-02-10","2025-02-07","2025-02-12","2025-02-13","2025-02-14", "2025-02-17","2025-02-18","2025-02-19","2025-02-20","2025-02-21","2025-02-24","2025-02-26")
+ch4_peakout<- c("S1-CA-R2-2f_0.5_1","S1-CA-R2-3f_0.5_1","S1-CA-A1-3f_0.5_2","S1-CA-A1-3f_0.5_4","S1-CA-A1-4f_0.5_1","S1-CA-P2-6f_0.5_1",
+                "S1-CU-R2-2f_0.5_1","S1-CU-R1-1f_0.5_5","S1-CU-P1-2f_0.5_2","S1-CU-P2-6f_0.5_1","S1-CU-R1-5f_0.5_1",
+                "S1-DA-R1-6f_0.5_1","S1-DA-R1-6f_0.5_2","S1-DA-P1-3f_0.5_2","S1-DA-P2-2f_0.5_1","S1-DA-R1-1f_0.5_1","S1-DA-R1-1f_0.5_2","S1-DA-P2-4f_0.5_1","S1-DA-A2-4f_0.5_1","S1-DA-R2-2f_0.5_1","S1-DA-R2-6f_0.5_1","S1-DA-A1-5f_0.5_1","S1-DA-A1-2f_0.5_4","S1-DA-A2-5f_0.5_1",
+                "S1-DU-A2-1f_0.5_1","S1-DU-A1-5f_0.5_1","S1-DU-P1-5f_0.5_3",
+                "S1-RI-P1-5f_0.5_1","S1-RI-P1-6f_0.5_1",
+                "S1-VA-A2-5f_0.5_1","S1-VA-P1-1f_0.5_1","S1-VA-P2-3f_0.5_2","S1-VA-P2-1f_0.5_1")#peaks that cannot be used (for anything)
+
+ch4_samples4peakbase<- c("S1-CA-A1-2f","S1-CA-P2-6f","S1-DU-P1-1f","S1-DU-P1-2f","S1-DU-P2-1f","S1-DU-P1-4f","S1-DU-A1-6f","S1-DU-A1-5f","S1-DU-P1-3f","S1-DU-P1-5f","S1-DU-A1-3f","S1-DU-P1-6f","S1-DU-A1-2f","S1-VA-P1-1f","S1-VA-P1-3f","S1-VA-P1-5f") #Samples for which we will take the average basepeak of the non-outlier peaks
+
+ch4_customprocess<- c("S1-DA-P1-1f","S1-DA-A1-3f","S1-CA-R1-3f","S1-DU-A1-4f") #Samples for custom process: without any assigned peak (nothing detected in remark for co2 or ch4), with only 1 valid peak for peakbase and not good-enough remarkbaseline. To decide and process.
+
+ch4_samplesinspected<- c()#non-important, only to avoid clogging the graph with samples slightly bad (i.e. cv good but larger than 0.05)
+ch4_samplinginspected<- c("S1-CA","S1-CU","S1-DA","S1-DU","S1-RI","S1-VA")
 
 
 
-
+#NOTHING INSPECTED&Decided for CO2: very difficult and noisy
 
 #CO2 inspection: 
 #Inspect samples with very high cv and clean individual peaks.
 test %>% 
-  filter(gas=="co2") %>%
+  mutate(sampling=substr(sample, 1,5)) %>% 
+  filter(gas=="co2") %>% 
+  filter(sampling=="S1-VA") %>% 
   filter(!peak_id%in%co2_peakout) %>% 
-  filter(!dayofanalysis%in%co2_daysinspected) %>%
-  filter(!remark%in%co2_negative_remarks) %>% 
-  # filter(!sample%in%c("S4-DA-R1-3f","S4-DA-P1-1f","S4-DA-A2-4f")) %>%
+  filter(!sample%in%c(co2_samplesinspected,co2_samples4peakbase)) %>% 
   group_by(sample, gas) %>% 
   mutate(avg_ppm=mean(ppm, na.rm=T),
          sd_ppm= sd(ppm, na.rm=T),
          cv_ppm=abs(sd_ppm/avg_ppm)) %>% 
   filter(cv_ppm>0.05) %>%
+  # filter(cv_ppm>0.5) %>%
   arrange(desc(cv_ppm)) %>% 
-  ungroup() %>% 
-  # filter(cv_ppm==max(cv_ppm)) %>% 
-  # filter(!sample%in%c("S3-DU-A1-5f","S4-DU-P1-1f")) %>% 
-  ggplot(aes(x=sample, y=ppm, col=factor(dayofanalysis)))+
+  ggplot(aes(x=factor(round(cv_ppm,3)), y=ppm, col=factor(sampling)))+
   geom_point()+
   geom_label(aes(label=peak_id))
 
 
+co2_peakout<- c()#peaks that cannot be used (for anything)
 
-#CO2 data already inspected (per day of injection)
-co2_peakout<- c("S2-CU-A1-5f_0.8_1",#2025-02-11
-                "S3-DU-A1-1f_0.8_1","S3-DU-A2-5f_0.8_1",#2025-02-10
-                "S3-CU-A1-6f_0.8_3","S3-CU-P1-1f_0.8_2","S3-CU-R1-2f_0.4_1","S3-CU-R1-4f_0.8_1","S4-DU-A2-2f_0.8_2","S4-DU-P1-1f_0.8_4",#2025-02-07
-                "S2-CA-R1-6f_0.8_3","S2-DA-P2-1i_1_2","S2-DA-R1-5f_0.4_1",# 2025-02-12
-                "S2-DU-R2-1i_1_3",#2025-02-13
-                "S2-DA-A2-4f_0.8_3","S2-RI-P2-1f_0.8_3", "S2-RI-R1-5i_1_2",#2025-02-14
-                "S3-RI-A1-1i_1_3",#2025-02-19
-                "S4-DA-A2-4f_0.4_1","S4-CA-A2-1f_0.4_3","S4-CA-A2-5f_0.4_1","S4-DA-R1-3f_0.2_1","S4-DA-R1-3f_0.2_3",#2025-02-20
-                "S4-CA-R2-5f_0.8_1","S4-VA-R1-6f_0.8_4","S4-VA-R1-1f_0.8_4","S4-VA-P1-5i_1_3","S4-CA-P2-2f_0.8_1","S4-VA-P1-1i_1_3","S4-VA-P1-3i_1_3","S4-VA-P1-5i_1_4",#2025-02-21
-                "S4-RI-P1-4f_0.8_1","S4-CU-A2-5i_1_3","S4-RI-P2-3i_1_2","S4-RI-R2-1i_1_3","S4-RI-R2-5i_1_3")#2025-02-24
-#2025-02-26 good
+co2_samples4peakbase<- c() #Samples for which we will take the average basepeak of the non-outlier peaks
 
-#Exclude remarks with negative co2 peaks
-co2_negative_remarks<- c("S4-DA-A2-3f_0.8","S4-DA-A2-4f_0.8","S4-DA-A2-5f_0.8","S4-DA-A2-5f_0.4","S4-DA-A2-5f_0.2","S4-DA-A2-6f_0.8","S4-DA-A2-6f_0.4","S4-DA-A2-6f_0.2","S4-DA-A2-6f_0.1","S4-DA-A2-6f_0.6","S4-DA-P1-1f_0.8","S4-DA-R1-1f_0.8","S4-DA-R1-1f_0.4","S4-DA-R1-2f_0.8","S4-DA-R1-3f_0.8","S4-DA-R1-3f_0.4","S4-DA-R1-4f_0.8","S4-DA-R1-4f_0.4","S4-DA-R1-4f_0.2","S4-DA-R1-4f_0.6","S4-DA-R1-5f_0.8","S4-DA-R1-5f_0.4","S4-DA-R1-5f_0.2","S4-DA-R1-5f_0.6","S4-DA-R1-6f_0.8","S4-DA-R1-6f_0.4","S4-CA-A2-1f_0.8","S4-CA-A2-4f_0.8","S4-CA-A2-4f_0.4","S4-CA-A2-4f_0.2","S4-CA-A2-4f_0.6","S4-CA-A2-5f_0.8")#2025-02-20
+co2_customprocess<- c("S1-DA-P1-1f","S1-DA-A1-3f","S1-CA-R1-3f","S1-DU-A1-4f") #Samples for custom process: without any assigned peak (nothing detected in remark for co2 or ch4), with only 1 valid peak for peakbase and not good-enough remarkbaseline. To decide and process.
+
+co2_samplesinspected<- c()#non-important, only to avoid clogging the graph with samples slightly bad (i.e. cv good but larger than 0.05)
+co2_samplinginspected<- c()
 
 
-#CO2 of days 2025-02-17 and 2025-02-18 have very high deviations, nothing we can do. still, the differences between initial and final seem consistent
-co2_daysinspected<- c("2025-02-11","2025-02-10","2025-02-07","2025-02-12","2025-02-13","2025-02-14","2025-02-17","2025-02-18","2025-02-19","2025-02-20","2025-02-21","2025-02-24","2025-02-26")
+
+
+
+
+
+
+
 
 
 
