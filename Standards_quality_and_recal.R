@@ -17,7 +17,7 @@ library(tidyverse)
 
 #Directories
 folder_data<- "C:/Users/Miguel/Dropbox/Licor_N2O/"
-folder_resuts<- paste0(folder_data,"Results_ppm/")
+folder_resuts<- paste0(folder_data,"Results_ppm_newperpeak/")
 repo_root <- dirname(rstudioapi::getSourceEditorContext()$path)
 folder_cal<- paste0(repo_root, "/Calibration/")
 
@@ -116,14 +116,27 @@ calibration_old <- read_csv(paste0(folder_cal, "Calibration_and_limit_of_detecti
   mutate(gas=tolower(gas)) %>% 
   select(gas, Intercept, Slope)
 
+####HERE##-------
+
+#AFTER THE NEW integration run for all, check variable names in integrated_samples to make sure everything works: 
+
+#Add to the calculation the baseline (peaksum ~ (ppm-peak_baseppm)*ml_injected)
+
+#So: ppm = ((peaksum-Intercept)/(Slope*ml_injected))+peak_baseppm
+
+#CHECK HERE if it works well.
+#POTENTIALLY use 0 to substitute negative peak_base
+#IN any case, transform peak_base into ppm (currently)
 
 #Calculate Concentration ppms 
 injections_ppm <- injections %>% 
   left_join(calibration_old, by="gas") %>% 
   separate(peak_id, into = c("sample", "ml_injected","peak_no"), sep = "_",remove = F) %>% 
-  mutate(ml_injected=as.numeric(gsub("[^0-9.]", "", ml_injected)),
-         ppm = ((peaksum-Intercept))/(Slope*ml_injected)) %>% 
-  select(dayofanalysis, gas, sample, ml_injected, peak_id, ppm, peaksum, unixtime_ofmax) %>% 
+  mutate(peak_baseppm=peak_base/1000,
+         ml_injected=as.numeric(gsub("[^0-9.]", "", ml_injected)),
+         ppm = ((peaksum-Intercept)/(Slope*ml_injected))+peak_baseppm) %>% 
+         # ppm = ((peaksum-Intercept))/(Slope*ml_injected)) %>% Old way of calibrate
+  select(dayofanalysis, gas, sample, ml_injected, peak_id, ppm, peaksum, peak_baseppm, unixtime_ofmax) %>% 
   mutate(datetime=as.POSIXct(unixtime_ofmax))
 
 
@@ -134,7 +147,7 @@ injections_ppm <- injections %>%
 #3 Filter & Format-----
 #Filter for internal standards analyzed with two licors
 
-#First date with all gases
+#Extract dates with all 3 gases
 dateswith3gases<-injections %>% select(dayofanalysis, gas) %>% 
   distinct() %>% 
   mutate(true=T) %>% 
@@ -170,7 +183,7 @@ air_b<- bases %>%
 
 all_standards<- inj %>% 
   merge.data.frame(air_b, by=c("dayofanalysis","gas", "sampletype","known_ppm"),all = T) %>% 
-  select(dayofanalysis, gas, sampletype, known_ppm, ml_injected, ppm, peak_id, known_ppm_sd, peaksum) %>% 
+  select(dayofanalysis, gas, sampletype, known_ppm, ml_injected, ppm, peak_id, known_ppm_sd, peaksum, peak_baseppm) %>% 
   group_by(dayofanalysis,gas,sampletype) %>% 
   mutate(known_ppm=mean(known_ppm,na.rm=T),
          known_ppm_sd=mean(known_ppm_sd,na.rm=T),
@@ -244,6 +257,11 @@ all_standards %>%
 #5. RE-CALIBRATION-------
 
 
+#AFTER MUCH THINKING and testing, we realize that the baseline must be included always in the calibration and in the re-calculation of concentrations. THis is because the peak-area is not proportional to the concentration of sample BUT to the difference in concentration between sample and baseline. 
+
+####CAUTION----
+#We need to adapt the integration procedure so that we always report the baseline concentration along with the base-corrected peak area. 
+
 #Theory for 1-point calibration: 
 
 #Licors have a well-established cero, so that we can directly obtain a calibration factor based on a single value of Area for an injection of known volume and concentration. 
@@ -253,22 +271,17 @@ all_standards %>%
 
 #Where: 
 
-# AREA is the sum of the signal from the instrument over the integration window of the detected peak.
+# AREA is the sum of the signal from the instrument over the integration window of the detected peak minus the baseline (i.e. base-corrected peak).
 
 # GHG_injection is the GHG concentration (in ppm) of the injected gas
 
-# GHG_baseline is the known GHG concentration (in ppm) of the carrier gas. In our case this is Zero for all 3 gasses. 
+# GHG_baseline is the known GHG concentration (in ppm) of the carrier gas.  
 
 #Vcal is the injected volume (in ml)
 
-#Because in our case we perform the baseline correction before the peak-integration (as our baseline for all gasses is zero ppm) we can simplify. 
-#Re-arranging and simplifying:
+#The formula takes into account that the area caused by the injection is proportional to the difference in concentration between the sample and the baseline, that is, that the peak is affected by the degree of dilution of the two concentrations. 
 
-# factor = AREA / (GHGinjection_ppm * ml_injection)
-
-  #And so:
-
-# GHGinjection_ppm = AREA / (factor * ml_injection)
+#WE NEED TO USE THE BASELINE CONCENTRATION FOR CALCULATING THE CAL FACTOR (little effect) and for obtaining the concentration of all samples (little effect with UB injections usign synthetic air but very high effect for UVEG injections)
 
 
 #We calculate the factor using the Average (central 95%) AREA for each gas from the standard injections of 1ml performed over various weeks from exetainers directly filled with the calibration mix. 
@@ -285,10 +298,10 @@ new_calibration<- all_standards %>%
             sd_area=sd(peaksum), 
             n_injections=sum(!is.na(peaksum)),
             GHGinjection_ppm=mean(known_ppm),
-            GHGbaseline_ppm=0,
+            GHGbaseline_ppm=mean(peak_baseppm),
             ml_injection=1) %>% 
-  mutate(factor = area / (GHGinjection_ppm * ml_injection),
-         sd_factor = sd_area / (GHGinjection_ppm * ml_injection)) %>% 
+  mutate(factor = area / ((GHGinjection_ppm-GHGbaseline_ppm) * ml_injection),
+         sd_factor = sd_area / ((GHGinjection_ppm-GHGbaseline_ppm) * ml_injection)) %>% 
   select(gas, factor, sd_factor, n_injections, GHGinjection_ppm, ml_injection,GHGbaseline_ppm, calibration_period)
 
 #SAVE one-point calibration factor in calibration folder of repo
@@ -297,35 +310,43 @@ write.csv(new_calibration, file=paste0(folder_cal, "One-point_calibration_factor
 
 
 
-#Check that it works: 
+#Check that it works: using 95% central distribution of aire and standards (excluding the most-outliying 5% of each type of sample for each gas)
   all_standards %>% 
-  # filter(sampletype=="standard") %>%
-  mutate(new_ppm=case_when(gas=="n2o"~peaksum/(ml_injected*229),
-                           gas=="ch4"~peaksum/(ml_injected*217),
-                           gas=="co2"~peaksum/(ml_injected*224))) %>% 
-    ggplot(aes(x=gas, y=new_ppm/known_ppm, col=sampletype))+
-    geom_boxplot()
-    
-  all_standards %>% 
-    # filter(sampletype=="standard") %>%
-    mutate(new_ppm=case_when(gas=="n2o"~peaksum/(ml_injected*229),
-                             gas=="ch4"~peaksum/(ml_injected*217),
-                             gas=="co2"~peaksum/(ml_injected*224))) %>% 
+    left_join(new_calibration %>% select(gas,factor), by = "gas") %>% 
     group_by(gas, sampletype) %>% 
+    mutate(lower = quantile(peaksum, 0.025),
+           upper = quantile(peaksum, 0.975)
+    ) %>% 
+    filter(between(peaksum, lower, upper)) %>% 
+  mutate(new_ppm=(peaksum/(ml_injected*factor))+peak_baseppm) %>% 
+    ggplot(aes(x=gas, y=new_ppm/known_ppm, col=sampletype))+
+    geom_violin()+
+    geom_boxplot()
+
+    
+  
+  #Summary of deviation with 95% central distributon of aire and standards
+  all_standards %>% 
+    left_join(new_calibration %>% select(gas,factor), by = "gas") %>% 
+    mutate(new_ppm=(peaksum/(ml_injected*factor))+peak_baseppm) %>% 
+    group_by(gas, sampletype) %>% 
+    mutate(lower = quantile(peaksum, 0.025),
+           upper = quantile(peaksum, 0.975)
+    ) %>% 
+    filter(between(peaksum, lower, upper)) %>% 
     summarise(avg=mean(new_ppm/known_ppm,na.rm=T),
-              sd_=sd(new_ppm/known_ppm,na.rm=T))
+              sd_=sd(new_ppm/known_ppm,na.rm=T),
+              n_injections=sum(!is.na(peaksum)),
+              cv_percent=sd_/sqrt(n_injections)*100)
   
-  
-  #WITH THE NEW 1-point calibration, we still over-estimate the concentration of ambient air samples (although less than with the old calibration, ~8% for CH4 and N2O, for CO2, our ambient air exetainers are less reliable)
+ #WITH THE NEW 1-point calibration, we still over-estimate the concentration of ambient air samples (although less than with the old calibration, ~6% for CH4, 4% for N2O, for CO2, our ambient air exetainers are less reliable)
   
   
   
   library(ggpmisc)
   all_standards %>% 
-    # filter(sampletype=="standard") %>%
-    mutate(new_ppm=case_when(gas=="n2o"~peaksum/(ml_injected*229),
-                             gas=="ch4"~peaksum/(ml_injected*217),
-                             gas=="co2"~peaksum/(ml_injected*224))) %>% 
+    left_join(new_calibration %>% select(gas,factor), by = "gas") %>% 
+    mutate(new_ppm=(peaksum/(ml_injected*factor))+peak_baseppm) %>% 
     group_by(gas, sampletype) %>% 
     mutate(lower = quantile(new_ppm, 0.1),
            upper = quantile(new_ppm, 0.9)
