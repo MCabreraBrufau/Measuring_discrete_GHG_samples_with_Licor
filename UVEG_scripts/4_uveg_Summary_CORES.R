@@ -60,8 +60,8 @@ unique(ch4$peak_id%in%co2$peak_id)
 
 #Format to join (create column gas and rename ppm)
 # n2o<- n2o %>% rename(ppm=N2O_ppm) %>% mutate(gas="n2o")
-co2<- co2 %>% rename(ppm=CO2_ppm) %>% mutate(gas="co2")
-ch4<- ch4 %>% rename(ppm=CH4_ppm) %>% mutate(gas="ch4")
+co2<- co2 %>% rename(ppm=co2_ppm) %>% mutate(gas="co2")
+ch4<- ch4 %>% rename(ppm=ch4_ppm) %>% mutate(gas="ch4")
 
 
 #Join datasets
@@ -85,7 +85,7 @@ notcores<- all %>% filter(!sample%in%cores$sample)
 
 ##1.2.UB-UVEG Calibration####
 
-#As we do not have calibration data for UVEG licor, we adjusted the UB calibration based on the intercomparison of samples analyzed with both instruments. 
+#As we do not have calibration data for UVEG licor, we used the UB calibration based
 
 #To test calibration, subset the dataset to samples with at least 2 injections of peakSNR>5 and cv_ppm <0.1 (10%)
 uveg_best<- cores %>% 
@@ -118,12 +118,22 @@ ub_match<- ub %>%
 #Join data from both methods and log-transform
 compare<- uveg_best %>% 
   left_join(ub_match, by=c("samplegas","gas")) %>% 
-  mutate(log_ppmub=log(avg_ppmub), log_ppmuveg=log(avg_ppm)) %>% 
-  filter(!(gas=="ch4"&avg_ppmub>750))#remove 2 extreme values
+  filter(!(avg_ppmub>600&gas=="ch4")) %>% 
+  mutate(log_ppmub=log(avg_ppmub), log_ppmuveg=log(avg_ppm),
+         percentreldif=(avg_ppm-avg_ppmub)/avg_ppmub*100) 
+
+thresholds<- compare %>% 
+  group_by(gas) %>% 
+  summarise(lower= quantile(percentreldif, 0.90, na.rm=T), 
+            upper= quantile(percentreldif, 0.1, na.rm=T))
+
+compare_good<- compare %>% 
+  left_join(thresholds, by="gas") %>% 
+  mutate(excluded=if_else(between(percentreldif, upper,lower),F,T))
 
 #Comparison in ppm
-compare %>% 
-  ggplot( aes(x=avg_ppmub, y= avg_ppm))+
+compare_good %>% 
+  ggplot( aes(x=avg_ppmub, y= avg_ppm, col=excluded))+
   geom_point()+
   geom_abline(slope = 1,intercept = 0)+
   geom_smooth(method = "lm")+
@@ -132,8 +142,8 @@ compare %>%
   facet_wrap(~gas, scales="free")
 
 #Comparson in log-transformed ppm
-compare %>% 
-ggplot( aes(x=log_ppmub, y= log_ppmuveg))+
+compare_good %>% 
+ggplot( aes(x=log_ppmub, y= log_ppmuveg, col=excluded))+
   geom_point()+
   geom_abline(slope = 1,intercept = 0)+
   geom_smooth(method = "lm")+
@@ -142,13 +152,20 @@ ggplot( aes(x=log_ppmub, y= log_ppmuveg))+
   facet_wrap(~gas, scales="free")
 
 #Relative difference between methods
-ggplot(compare, aes(x=gas, y= (avg_ppm-avg_ppmub)/avg_ppmub))+
+ggplot(compare_good, aes(x=gas, y= (avg_ppm-avg_ppmub)/avg_ppmub))+
   geom_boxplot()+
+  geom_point(data=. %>% filter(excluded==T),aes(col="excluded"))+
   ggtitle("Relative difference between methods")
 
+ggplot(compare_good, aes(x=gas, y= (avg_ppm-avg_ppmub)))+
+  geom_boxplot()+
+  geom_point(data=. %>% filter(excluded==T),aes(col="excluded"))+
+  ggtitle("Absolute difference between methods")+
+  facet_wrap(~gas, scales="free")
 
-ggplot(compare, aes(x=log_ppmub, y= (avg_ppm-avg_ppmub)/avg_ppmub*100))+
-  geom_point()+
+
+ggplot(compare_good, aes(x=log_ppmub, y= (avg_ppm-avg_ppmub)/avg_ppmub*100))+
+  geom_point(aes(col=excluded))+
   scale_y_continuous(name="Relative difference (%)", breaks = seq(-100,100,by=10))+
   ggtitle("Relative difference between methods")+
   facet_wrap(~gas, scales="free")
@@ -157,10 +174,10 @@ ggplot(compare, aes(x=log_ppmub, y= (avg_ppm-avg_ppmub)/avg_ppmub*100))+
 
 #CO2 moldel between the two methods
 #Fit linear model on log-transformed values
-co2difmodel<- lm(log_ppmuveg~log_ppmub,data = compare %>% filter(gas=="co2"))
+co2difmodel<- lm(log_ppmuveg~log_ppmub,data = compare_good %>% filter(gas=="co2"&excluded==F))
 
 # predict in the range of observations and get average overestimation value (aproximation of intercept, in this case mean overestimation of uveg method)
-range_co2_logppm<-compare %>% filter(gas=="co2") %>% 
+range_co2_logppm<-compare_good %>% filter(gas=="co2"&excluded==F) %>% 
   summarise(max_log_ppmub=max(log_ppmub,na.rm=T),
             min_log_ppmub=min(log_ppmub,na.rm=T))
 
@@ -181,10 +198,10 @@ ggplot(overestimation_co2, aes(x=predicted_ppm, y=overestimate_ppm/predicted_ppm
 
 #CH4 between the two methods
 #Fit linear model on log-transformed values
-ch4difmodel<- lm(log_ppmuveg~log_ppmub,data = compare %>% filter(gas=="ch4"))
+ch4difmodel<- lm(log_ppmuveg~log_ppmub,data = compare_good %>% filter(gas=="ch4"&excluded==F))
 
 # predict in the range of observations and get average overestimation value (aproximation of intercept, in this case mean overestimation of uveg method)
-range_ch4_logppm<-compare %>% filter(gas=="ch4") %>% 
+range_ch4_logppm<-compare_good %>% filter(gas=="ch4"&excluded==F) %>% 
   summarise(max_log_ppmub=max(log_ppmub,na.rm=T),
             min_log_ppmub=min(log_ppmub,na.rm=T))
 
@@ -199,7 +216,7 @@ overestimation_ch4<- data.frame(log_ppmub=seq(range_ch4_logppm$min_log_ppmub,
 #CH4 is underestimated for low-values (-6.5% maximum underestimation with respect to UB injections) This is ok-ish
 ggplot(overestimation_ch4, aes(x=predicted_ppm, y=overestimate_ppm/predicted_ppm*100))+
   geom_point()+
-  scale_y_continuous(name="Relative method difference (% CH4)", limits = c(-10,10))+
+  scale_y_continuous(name="Relative method difference (% CH4)", limits = c(-5,50))+
   ggtitle("Relative CH4 overestimation over the range measured")
 
 
@@ -208,15 +225,34 @@ ggplot(overestimation_ch4, aes(x=predicted_ppm, y=overestimate_ppm/predicted_ppm
 #Adjusted slopes are appropiate to approximate UVEG values for S1 measured with Licor and for Mixes. 
 
 #Summary of comparison:
-compare %>% 
+compare_good %>% 
+  filter(excluded==F) %>% 
   group_by(gas) %>% 
   mutate(ppmdif=avg_ppm-avg_ppmub,
          ppmreldif=ppmdif/avg_ppmub*100) %>% 
   summarise(avg_percentreldif=mean(ppmreldif, na.rm=T),
             sd_percentreldif=sd(ppmreldif, na.rm=T),
             n_reldif=sum(!is.na(ppmreldif)),
-            se_percentreldif=sd_percentreldif/sqrt(n_reldif))
+            se_percentreldif=sd_percentreldif/sqrt(n_reldif),
+            avg_ppmdif=mean(ppmdif, na.rm=T))
 
+compare_good %>% 
+  filter(excluded==F) %>% 
+  mutate(ppmdif=avg_ppm-avg_ppmub) %>% 
+  ggplot(aes(y=ppmdif))+
+  geom_histogram()+
+  facet_wrap(~gas, scales="free")
+
+
+compare_good %>% 
+  filter(excluded==F) %>% 
+  ggplot( aes(x=avg_ppmub, y= avg_ppm))+
+  geom_point()+
+  geom_abline(slope = 1,intercept = 0)+
+  geom_smooth(method = "lm")+
+  stat_poly_eq(formula = y ~ x, 
+               aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")))+
+  facet_wrap(~gas, scales="free")
 
 
 rm(compare, ub,ub_match, uveg_best, ch4difmodel,co2difmodel,overestimation_ch4, overestimation_co2, range_ch4_logppm, range_co2_logppm)
@@ -228,7 +264,7 @@ rm(compare, ub,ub_match, uveg_best, ch4difmodel,co2difmodel,overestimation_ch4, 
 
 #Peak detection will be based on peakSNR (peakarea/3*baseline_sd): custom threshold after exploration
 
-#Peaks not detected with peakSNR will be visually inspected to determine whether we use them as peaks (area*slope + peakbase) or we keep the value of the baseline (one of peakbase_ppm, nopeakbase_avg_ppm,remark_avg_ppm). 
+#Peaks not detected with peakSNR will be visually inspected to determine whether we use them as peaks ( (peaksum/ml_injected*factor) + peakbase) or we keep the value of the baseline (one of peakbase_ppm, nopeakbase_avg_ppm,remark_avg_ppm). 
 
 #With 
 
@@ -258,12 +294,13 @@ test %>%
   select(season, gas, percent, good, total) %>% 
   arrange(season,gas)
   
+
 #CH4 inspection: 
 #Inspect samples with very high cv and clean individual peaks.
 test %>% 
   mutate(sampling=substr(sample, 1,5)) %>% 
   filter(gas=="ch4") %>% 
-  filter(sampling=="S2-CA") %>% 
+  filter(sampling=="S3-VA") %>% 
   filter(!peak_id%in%ch4_peakout) %>% 
   filter(!sample%in%c(ch4_samplesinspected,ch4_customprocess,ch4_samples4peakbase)) %>% 
   group_by(sample, gas) %>% 
@@ -272,7 +309,7 @@ test %>%
          cv_ppm=abs(sd_ppm/avg_ppm)) %>% 
   filter(cv_ppm>0.05) %>%
   arrange(desc(cv_ppm)) %>% 
-  ggplot(aes(x=factor(round(cv_ppm,3)), y=ppm, col=factor(sampling)))+
+  ggplot(aes(x=factor(round(cv_ppm,3)), y=ppm, col=(peakSNR>3)))+
   geom_point()+
   geom_label(aes(label=peak_id))
 
@@ -282,14 +319,30 @@ ch4_peakout<- c("S1-CA-R2-2f_0.5_1","S1-CA-R2-3f_0.5_1","S1-CA-A1-3f_0.5_2","S1-
                 "S1-DA-R1-6f_0.5_1","S1-DA-R1-6f_0.5_2","S1-DA-P1-3f_0.5_2","S1-DA-P2-2f_0.5_1","S1-DA-R1-1f_0.5_1","S1-DA-R1-1f_0.5_2","S1-DA-P2-4f_0.5_1","S1-DA-A2-4f_0.5_1","S1-DA-R2-2f_0.5_1","S1-DA-R2-6f_0.5_1","S1-DA-A1-5f_0.5_1","S1-DA-A1-2f_0.5_4","S1-DA-A2-5f_0.5_1",
                 "S1-DU-A2-1f_0.5_1","S1-DU-A1-5f_0.5_1","S1-DU-P1-5f_0.5_3",
                 "S1-RI-P1-5f_0.5_1","S1-RI-P1-6f_0.5_1",
-                "S1-VA-A2-5f_0.5_1","S1-VA-P1-1f_0.5_1","S1-VA-P2-3f_0.5_2","S1-VA-P2-1f_0.5_1")#peaks that cannot be used (for anything)
+                "S1-VA-A2-5f_0.5_1","S1-VA-P1-1f_0.5_1","S1-VA-P2-3f_0.5_2","S1-VA-P2-1f_0.5_1",
+                "S2-CA-A1-5f_0.5_1","S2-CA-R2-3f_0.5_3","S2-CA-A2-1f_0.5_1","S2-CA-R1-2f_0.5_1","S2-CA-P2-1f_0.5_1",
+                "S2-CU-A2-3f_0.5_1","S2-CU-A2-5f_0.5_1","S2-CU-A2-6f_0.5_1","S2-CU-A2-4f_0.5_1","S2-CU-A1-6f_0.5_1","S2-CU-A1-1f_0.5_1","S2-CU-R1-3f_0.5_1","S2-CU-A1-4f_0.5_1","S2-CU-P2-5f_0.5_1","S2-CU-P2-1f_0.5_1","S2-CU-R1-6f_0.5_3","S2-CU-R2-1f_0.5_1","S2-CU-P2-2f_0.5_1","S2-CU-R1-5f_0.5_3","S2-CU-A2-1f_0.5_1","S2-CU-P2-3f_0.5_1",
+                "S2-DA-R1-5f_0.5_1","S2-DA-R1-3f_0.5_1","S2-DA-R1-6f_0.5_1","S2-DA-P2-3f_0.5_1","S2-DA-P2-4f_0.5_1","S2-DA-P2-1f_0.5_1","S2-DA-A1-6f_0.5_3","S2-DA-A1-3f_0.5_3","S2-DA-P2-6f_0.5_2","S2-DA-R1-1f_0.5_2","S2-DA-A1-1f_0.5_3","S2-DA-P2-2f_0.5_1","S2-DA-P1-3f_0.5_1",
+                "S2-DU-R2-6f_0.5_1","S2-DU-R2-4f_0.5_1","S2-DU-R1-1f_0.5_2","S2-DU-P1-5f_0.5_1","S2-DU-A2-1f_0.5_1","S2-DU-A2-6f_0.5_1",
+                "S2-RI-A1-5f_0.5_1","S2-RI-A1-6f_0.5_1","S2-RI-P1-1f_0.5_4","S2-RI-P1-4f_0.5_4",
+                "S2-VA-R1-1f_0.5_1","S2-VA-R1-5f_0.5_1","S2-VA-R1-4f_0.5_1","S2-VA-R1-3f_0.5_1","S2-VA-P2-6f_0.5_1",
+                "S3-CA-R2-5f_0.5_2",
+                "S3-DA-P2-1f_0.5_1","S3-DA-P2-1f_0.5_2","S3-DA-P2-1f_0.5_3","S3-DA-A1-1f_0.5_1","S3-DA-A1-1f_0.5_2","S3-DA-A1-1f_0.5_3","S3-DA-A1-6f_0.5_1","S3-DA-A1-6f_0.5_2","S3-DA-P2-2f_0.5_1","S3-DA-P2-2f_0.5_2","S3-DA-A2-2f_0.5_1","S3-DA-A2-2f_0.5_2","S3-DA-P1-1f_0.5_1","S3-DA-P2-3f_0.5_1","S3-DA-A1-5f_0.5_1","S3-DA-P1-2f_0.5_1",
+                "S3-DU-R1-1f_0.5_2","S3-DU-A2-6f_0.5_1","S3-DU-P2-5f_0.5_1","S3-DU-A1-6f_0.5_1",
+                "S3-RI-P1-1f_0.5_1","S3-RI-P1-1f_0.5_2","S3-RI-R2-6f_0.5_3","S3-RI-P1-5f_0.5_3","S3-RI-A1-2f_0.5_4","S3-RI-R2-2f_0.5_1","S3-RI-R2-2f_0.5_2","S3-RI-R2-5f_0.5_1",
+                "S3-VA-A2-2f_0.5_2","S3-VA-R1-2f_0.5_3","S3-VA-P1-3f_0.5_1","S3-VA-P1-3f_0.5_2","S3-VA-R1-3f_0.5_1","S3-VA-R1-6f_0.5_1","S3-VA-A2-1f_0.5_1","S3-VA-A2-1f_0.5_2","S3-VA-A1-2f_0.5_1","S3-VA-A1-2f_0.5_2","S3-VA-A1-2f_0.5_3")#peaks that cannot be used (for anything)
 
-ch4_samples4peakbase<- c("S1-CA-A1-2f","S1-CA-P2-6f","S1-DU-P1-1f","S1-DU-P1-2f","S1-DU-P2-1f","S1-DU-P1-4f","S1-DU-A1-6f","S1-DU-A1-5f","S1-DU-P1-3f","S1-DU-P1-5f","S1-DU-A1-3f","S1-DU-P1-6f","S1-DU-A1-2f","S1-VA-P1-1f","S1-VA-P1-3f","S1-VA-P1-5f") #Samples for which we will take the average basepeak of the non-outlier peaks
+ch4_samples4peakbase<- c("S1-CA-A1-2f","S1-CA-P2-6f","S1-DU-P1-1f","S1-DU-P1-2f","S1-DU-P2-1f","S1-DU-P1-4f","S1-DU-A1-6f","S1-DU-A1-5f","S1-DU-P1-3f","S1-DU-P1-5f","S1-DU-A1-3f","S1-DU-P1-6f","S1-DU-A1-2f","S1-VA-P1-1f","S1-VA-P1-3f","S1-VA-P1-5f","S2-CA-P2-2f","S2-DU-A1-2f","S2-DU-R1-2f","S2-DU-A1-4f","S2-DU-A1-5f","S2-DU-P1-1f","S2-DU-A1-6f","S2-DU-A2-4f","S2-DU-R1-6f","S2-DU-A1-3f","S2-DU-A2-1f","S2-DU-R1-3f","S2-DU-A2-3f","S2-DU-P1-6f","S2-DU-P1-4f","S2-DU-A2-2f","S2-RI-A1-5f","S2-RI-P1-3f","S2-RI-P1-2f","S2-RI-A1-2f","S3-DU-A2-3f","S3-RI-R2-3f","S3-RI-R2-1f") #Samples for which we will take the average basepeak of the non-outlier peaks
 
-ch4_customprocess<- c("S1-DA-P1-1f","S1-DA-A1-3f","S1-CA-R1-3f","S1-DU-A1-4f") #Samples for custom process: without any assigned peak (nothing detected in remark for co2 or ch4), with only 1 valid peak for peakbase and not good-enough remarkbaseline. To decide and process.
+ch4_customprocess<- c("S1-DA-P1-1f","S1-DA-A1-3f","S1-CA-R1-3f","S1-DU-A1-4f","S2-DA-A1-4f") #Samples for custom process: without any assigned peak (nothing detected in remark for co2 or ch4), with only 1 valid peak for peakbase and not good-enough remarkbaseline. To decide and process.
 
 ch4_samplesinspected<- c()#non-important, only to avoid clogging the graph with samples slightly bad (i.e. cv good but larger than 0.05)
-ch4_samplinginspected<- c("S1-CA","S1-CU","S1-DA","S1-DU","S1-RI","S1-VA")
+ch4_samplinginspected<- c("S1-CA","S1-CU","S1-DA","S1-DU","S1-RI","S1-VA",
+                          "S2-CA","S2-CU","S2-DA","S2-DU","S2-RI","S2-VA",
+                          "S3-CA","S3-DA","S3-DU","S3-RI","S3-VA")
+
+#No samples S3-CU CH4, all rest of injections ch4 are inspected and cleaned. 
+
 
 
 
@@ -300,29 +353,49 @@ ch4_samplinginspected<- c("S1-CA","S1-CU","S1-DA","S1-DU","S1-RI","S1-VA")
 test %>% 
   mutate(sampling=substr(sample, 1,5)) %>% 
   filter(gas=="co2") %>% 
-  filter(sampling=="S1-VA") %>% 
+  filter(sampling=="S2-DU") %>% 
   filter(!peak_id%in%co2_peakout) %>% 
-  filter(!sample%in%c(co2_samplesinspected,co2_samples4peakbase)) %>% 
+  filter(!sample%in%c(co2_samplesinspected,co2_samples4peakbase,co2_samples4remarkbase)) %>% 
   group_by(sample, gas) %>% 
   mutate(avg_ppm=mean(ppm, na.rm=T),
          sd_ppm= sd(ppm, na.rm=T),
-         cv_ppm=abs(sd_ppm/avg_ppm)) %>% 
-  filter(cv_ppm>0.05) %>%
+         cv_ppm=abs(sd_ppm/avg_ppm),
+         n_ppm=sum(!is.na(ppm))) %>% 
+  filter(cv_ppm>0.1) %>%
+  filter(n_ppm>2) %>% 
   # filter(cv_ppm>0.5) %>%
   arrange(desc(cv_ppm)) %>% 
-  ggplot(aes(x=factor(round(cv_ppm,3)), y=ppm, col=factor(sampling)))+
+  ggplot(aes(x=factor(round(cv_ppm,3)), y=ppm, col=(peakSNR>3)))+
   geom_point()+
   geom_label(aes(label=peak_id))
 
 
-co2_peakout<- c()#peaks that cannot be used (for anything)
+co2_peakout<- c("S1-CA-R2-3f_0.5_3","S1-CA-P1-4f_0.5_1","S1-CA-P1-4f_0.5_2","S1-CA-A1-4f_0.5_2","S1-CA-P1-6f_0.5_3","S1-CA-A1-5f_0.5_3","S1-CA-A1-5f_0.5_1","S1-CA-R1-4f_0.5_1","S1-CA-P1-3f_0.5_1","S1-CA-A2-1f_0.5_1","S1-CA-R2-6f_0.5_3","S1-CA-R2-6f_0.5_2","S1-CA-R1-7f_0.5_3","S1-CA-R2-5f_0.5_2","S1-CA-P2-5f_0.5_1","S1-CA-P1-2f_0.5_2","S1-CA-P2-4f_0.5_1","S1-CA-A2-6f_0.5_2","S1-CA-R2-1f_0.5_3","S1-CA-P2-3f_0.5_2","S1-CA-A2-5f_0.5_1","S1-CA-A1-3f_0.5_1","S1-CA-A1-3f_0.5_2","S1-CA-A2-3f_0.5_2","S1-CA-P2-6f_0.5_2","S1-CA-R2-2f_0.5_3","S1-CA-R1-2f_0.5_1","S1-CA-A2-2f_0.5_3","S1-CA-R1-5f_0.5_2","S1-CA-P1-1f_0.5_2",
+                "S1-CU-P1-3f_0.5_3","S1-CU-R1-1f_0.5_1","S1-CU-R1-1f_0.5_5","S1-CU-A2-2f_0.5_1","S1-CU-P2-5f_0.5_1","S1-CU-R1-5f_0.5_3","S1-CU-R2-5f_0.5_2","S1-CU-P2-2f_0.5_1","S1-CU-P2-1f_0.5_2","S1-CU-R2-1f_0.5_1","S1-CU-P2-6f_0.5_2","S1-CU-P2-4f_0.5_2","S1-CU-P2-3f_0.5_2",
+                "S1-DA-R1-4f_0.5_2","S1-DA-R1-5f_0.5_2","S1-DA-R1-5f_0.5_3","S1-DA-P1-3f_0.5_2","S1-DA-P1-6f_0.5_1","S1-DA-R1-6f_0.5_1","S1-DA-R1-6f_0.5_3","S1-DA-R1-6f_0.5_5","S1-DA-R1-1f_0.5_4","S1-DA-R1-1f_0.5_3","S1-DA-R2-5f_0.5_1","S1-DA-R2-5f_0.5_2","S1-DA-P2-4f_0.5_1","S1-DA-R2-6f_0.5_1","S1-DA-R2-4f_0.5_1","S1-DA-R1-2f_0.5_2",
+                "S1-DU-A1-6f_0.5_2","S1-DU-A1-6f_0.5_3","S1-DU-A1-1f_0.5_1","S1-DU-R2-2f_0.5_1","S1-DU-P1-2f_0.5_2","S1-DU-R2-4f_0.5_1","S1-DU-R2-6f_0.5_3","S1-DU-R2-1f_0.5_2","S1-DU-R2-3f_0.5_3","S1-DU-R1-1f_0.5_1","S1-DU-A1-2f_0.5_1","S1-DU-P1-5f_0.5_3",
+                "S1-RI-P1-5f_0.5_1","S1-RI-P1-2f_0.5_1","S1-RI-A1-6f_0.5_3","S1-RI-P1-2f_0.5_1","S1-RI-P1-2f_0.5_3","S1-RI-R2-5f_0.5_1","S1-RI-R2-5f_0.5_2","S1-RI-P1-6f_0.5_3","S1-RI-A2-1f_0.5_3","S1-RI-P2-5f_0.5_2","S1-RI-A2-5f_0.5_1","S1-RI-P1-4f_0.5_2","S1-RI-R1-3f_0.5_3","S1-RI-R2-6f_0.5_1","S1-RI-A1-5f_0.5_3","S1-RI-R1-4f_0.5_1","S1-RI-R1-2f_0.5_3","S1-RI-R2-3f_0.5_3",
+                "S1-VA-R1-1f_0.5_3","S1-VA-R2-5f_0.5_1","S1-VA-R1-4f_0.5_3","S1-VA-A1-6f_0.5_3","S1-VA-R2-3f_0.5_2","S1-VA-R1-3f_0.5_1","S1-VA-A2-3f_0.5_3","S1-VA-A2-5f_0.5_3","S1-VA-A2-1f_0.5_2","S1-VA-R2-6f_0.5_1","S1-VA-A2-4f_0.5_3","S1-VA-A1-4f_0.5_2","S1-VA-A1-5f_0.5_1","S1-VA-P1-2f_0.5_2")#peaks that cannot be used (for anything)
 
 co2_samples4peakbase<- c() #Samples for which we will take the average basepeak of the non-outlier peaks
 
+co2_samples4remarkbase<- c("S1-CA-A1-2f","S1-CA-A1-6f","S1-CA-A1-1f",
+                           "S1-CU-P1-2f","S1-CU-A2-4f","S1-CU-R1-3f","S1-CU-R2-4f","S1-CU-R2-6f","S1-CU-R2-2f","S1-CU-A2-1f","S1-CU-A2-6f","S1-CU-R1-2f","S1-DA-P1-2f",
+                           "S1-RI-P2-3f","S1-RI-P2-2f",
+                           "S1-VA-P2-3f","S1-VA-R2-4f","S1-VA-P2-4f","S1-VA-A1-1f","S1-VA-A1-2f","S1-VA-A1-3f","S1-VA-P2-2f","S1-VA-A2-6f","S1-VA-R2-1f","S1-VA-R2-2f","S1-VA-P2-5f","S1-VA-P2-1f")#Samples for which we will take the average of the whole remark
+
 co2_customprocess<- c("S1-DA-P1-1f","S1-DA-A1-3f","S1-CA-R1-3f","S1-DU-A1-4f") #Samples for custom process: without any assigned peak (nothing detected in remark for co2 or ch4), with only 1 valid peak for peakbase and not good-enough remarkbaseline. To decide and process.
 
-co2_samplesinspected<- c()#non-important, only to avoid clogging the graph with samples slightly bad (i.e. cv good but larger than 0.05)
-co2_samplinginspected<- c()
+co2_samplesinspected<- c("S1-VA-R1-1f","S1-VA-R2-5f","S1-VA-R1-6f","S1-VA-P1-4f","S1-VA-R2-3f","S1-RI-A1-6f","S1-VA-A1-6f","S1-VA-P1-6f")#non-important, only to avoid clogging the graph with samples slightly bad (i.e. cv good but larger than 0.05)
+co2_samplinginspected<- c("S1-CA",#Extremely noisy, not sure about outliers/keepers
+                          "S1-CU",#Extremely noisy, not sure about outliers/keepers for some
+                          "S1-DA", #More peaks clearer than S1-CA & S1-CU
+                          "S1-DU", #Super clear peaks and outliers
+                          "S1-RI", #Super clear peaks and outliers
+                          "S1-VA"  #Very noisy, unclear for many samples
+                          )
+
+#Weird:"S1-DA-P1-3f" clear negative Co2 peaks but resulting absolute Co2 ppm < 0 (calfactor issue)
 
 
 

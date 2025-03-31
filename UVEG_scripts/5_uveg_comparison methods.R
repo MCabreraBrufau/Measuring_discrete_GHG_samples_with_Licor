@@ -1,5 +1,8 @@
 #Compare results of CH4 and CO2 from S2-S3 between UVEG and UB methods
 
+#THIS SCRIPT IS NOT UPDATED, the UB-UVEG complarison is only in uveg_summary_cores script,
+
+
 
 #We have to addapt the script to take per-core summaries (already cleaned) to compare average ppm results from UVEG injections and UB injections. 
 

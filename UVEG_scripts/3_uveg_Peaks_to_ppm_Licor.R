@@ -54,20 +54,24 @@ ppmfiles<- NULL
 integratedtoppm<- gsub(".csv","",gsub("integrated_injections_","",integratedfiles[
   !gsub(".csv","",gsub("integrated_injections_","",integratedfiles))%in%gsub(".csv","",gsub("^.*ppm_samples_","",ppmfiles))]))#  integrated files "rawcode" without corresponding ppmfiles "rawcode"
   
-#Get calibration curve: test with the UB calibration for the moment 
-calibration <- read_csv(paste0(folder_calibration, "/Calibration_and_limit_of_detection_2024-12-12.csv"),show_col_types = F)
+#Get calibration curve: test with the one-point UB calibration for the moment 
+calibration <- read_csv(paste0(folder_calibration, "/One-point_calibration_factor.csv"),show_col_types = F)
+
 
 #Custom adjustment of calibration based on differences between UB-derived concentrations and UVEG-derived concentrations (inspection in 4_uveg_summary_cores script)
-calibration$Slope[2]<- 258 #CO2 slope is increased manually to minimize discrepancy between values obtained for the two methods (based on ~90 samples measured with both instruments)
-calibration$Slope[1]<- 195 #CH4 slope is adjusted manually to minimize discrepancy (~300 samples compared between two instruments)
+calibration$factor[calibration$gas=="co2"]<- 260 #CO2 slope is increased manually to minimize discrepancy between values obtained for the two methods (based on ~86 samples measured with both instruments)
+calibration$factor[calibration$gas=="ch4"]<- 235#CH4 slope was adjusted manually to minimize discrepancy (~215 samples compared between two instruments)
+
+
 
 
 for (i in integratedtoppm){
   #Take the correct calibration curve for the gas
-  gasname <- substr(i, 1, 3)
+  gasname <- tolower(substr(i, 1, 3))
 
-  slope <- calibration %>% filter(Species == gasname) %>% select(Slope) %>% pull()
-  intercept <- calibration %>% filter(Species == gasname) %>% select(Intercept) %>% pull()
+  factor<- calibration %>% filter(gas==gasname) %>% select(factor) %>% pull()
+  # slope <- calibration %>% filter(Species == gasname) %>% select(Slope) %>% pull()
+  # intercept <- calibration %>% filter(Species == gasname) %>% select(Intercept) %>% pull()
 
   #Load integrated peaks of integratedfile i
   int<- read.csv(paste0(folder_results,"/","integrated_injections_",i,".csv"))
@@ -76,14 +80,14 @@ for (i in integratedtoppm){
     peak_ppm<- int %>% 
       separate(peak_id, into = c("sample", "ml_injected","peak_no"), sep = "_",remove = F) %>% 
       mutate(ml_injected=as.numeric(gsub("[^0-9.]", "", ml_injected)), 
-             # ml_injected=0.5, #___________CAUTION!!!! injection volume overriden for testing
-             !!paste0(gasname, "_ppm") := ((peaksum-intercept))/(slope*ml_injected) + (peak_base/1000),
+             ml_injected=0.5, #___________CAUTION!!!! injection volume overriden for testing
              peakbase_ppm=peak_base/1000,
+             !!paste0(gasname, "_ppm") := (peaksum/(factor*ml_injected)) + peakbase_ppm,
              nopeakbase_avg_ppm =avg_baseline/1000,
              nopeakbase_sd_ppm =sd_baseline/1000,
              remark_avg_ppm =avg_remark/1000,
              remark_sd_ppm =sd_remark/1000) %>%
-      select(dayofanalysis, sample, ml_injected, peak_id, !!paste0(gasname, "_ppm"), unixtime_ofmax, peakSNR,peakbase_ppm,nopeakbase_avg_ppm,nopeakbase_sd_ppm,remark_avg_ppm,remark_sd_ppm) %>% 
+      select(dayofanalysis, sample, ml_injected, peak_id, !!paste0(gasname, "_ppm"), unixtime_ofmax, peakSNR,peaksum, peakbase_ppm,nopeakbase_avg_ppm,nopeakbase_sd_ppm,remark_avg_ppm,remark_sd_ppm) %>% 
       mutate(datetime=as.POSIXct(unixtime_ofmax))
 
   #Save ppm of peaks

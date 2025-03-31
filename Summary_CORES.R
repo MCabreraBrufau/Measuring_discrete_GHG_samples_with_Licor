@@ -1,7 +1,7 @@
 #Export all N2O CO2 and CH4 concentrations (ppm) to RESTORE4Cs dropbox
 
 
-#This script loads all Licor-derived concentrations in Results_ppm folder, filters for injections from cores, and saves all data into Restore4Cs folder for cores.
+#This script loads all Licor-derived concentrations in Results_ppm_newperpeak folder, filters for injections from cores, and saves all data into Restore4Cs folder for cores.#Adapted to new calibration and detection of peaks, all inspected, ok. 
 
 
 #Clean WD
@@ -15,7 +15,7 @@ library(readxl)
 
 #Directories
 folder_data<- "C:/Users/Miguel/Dropbox/Licor_N2O/"
-folder_resuts<- paste0(folder_data,"Results_ppm/")
+folder_resuts<- paste0(folder_data,"Results_ppm_newperpeak/")
 # folder_samplelist<- paste0(folder_data, "Samplelist/")
 
 folder_export<- "C:/Users/Miguel/Dropbox/RESTORE4Cs - Fieldwork/Data/Cores/UB_concentrations/"
@@ -60,11 +60,6 @@ print(co2[!co2$peak_id%in%ch4$peak_id,],n=50)
 #S4-DA-R1-5f CH4 too high, co2 peak detection failed. 2025-02-20
 
 
-#Format to join (create column gas and rename ppm)
-n2o<- n2o %>% rename(ppm=N2O_ppm) %>% mutate(gas="n2o")
-co2<- co2 %>% rename(ppm=CO2_ppm) %>% mutate(gas="co2")
-ch4<- ch4 %>% rename(ppm=CH4_ppm) %>% mutate(gas="ch4")
-
 
 #Join datasets
 all<- rbind(n2o,co2, ch4)
@@ -105,10 +100,11 @@ test %>%
 #Inspect samples with very high cv and clean individual peaks.
 test %>% 
   filter(gas=="n2o") %>% 
+  # filter(sample=="S4-DA-A2-6f") %>% 
   # filter(dayofanalysis=="2025-02-07") %>% 
-  filter(!peak_id%in%n2o_peakout) %>% 
+  filter(!peak_id%in%n2o_peakout) %>%
   filter(!dayofanalysis%in%n2o_daysinspected) %>%
-  filter(!remark%in%n2o_negative_remarks) %>% 
+  filter(!remark%in%n2o_negative_remarks) %>%
   group_by(sample, gas) %>% 
   mutate(avg_ppm=mean(ppm, na.rm=T),
          sd_ppm= sd(ppm, na.rm=T),
@@ -119,7 +115,7 @@ test %>%
   geom_label(aes(label=peak_id))
 
 #N2O data already inspected (per day of injection)
-n2o_peakout<- c("S2-CU-A2-2f_0.1_1","S2-CU-A2-2f_0.1_3","S2-CU-A2-2f_0.1_5", "S2-CU-A1-5f_0.8_1", #2025-02-11
+n2o_peakout<- c("S2-CU-A2-2f_0.1_1","S2-CU-A2-2f_0.1_3", "S2-CU-A1-5f_0.8_1", #2025-02-11
                 "S3-CU-R1-2f_0.4_1","S3-CU-A1-6f_0.8_3","S3-CU-P1-1f_0.8_2","S4-DU-A2-2f_0.8_2","S4-DU-A2-3f_0.8_2", #2025-02-07
                 "S3-DU-A1-1f_0.8_1","S3-DU-A2-5f_0.8_1",#2025-02-10
                 "S2-CA-A2-4f_0.8_1","S2-CA-R2-5f_0.8_2","S2-DA-P2-1i_1_2",# 2025-02-12
@@ -182,9 +178,9 @@ ch4_daysinspected<- c("2025-02-11","2025-02-10","2025-02-07","2025-02-12","2025-
 #Inspect samples with very high cv and clean individual peaks.
 test %>% 
   filter(gas=="co2") %>%
-  filter(!peak_id%in%co2_peakout) %>% 
+  filter(!peak_id%in%co2_peakout) %>%
   filter(!dayofanalysis%in%co2_daysinspected) %>%
-  filter(!remark%in%co2_negative_remarks) %>% 
+  filter(!remark%in%co2_negative_remarks) %>%
   # filter(!sample%in%c("S4-DA-R1-3f","S4-DA-P1-1f","S4-DA-A2-4f")) %>%
   group_by(sample, gas) %>% 
   mutate(avg_ppm=mean(ppm, na.rm=T),
@@ -210,13 +206,13 @@ co2_peakout<- c("S2-CU-A1-5f_0.8_1",#2025-02-11
                 "S2-DA-A2-4f_0.8_3","S2-RI-P2-1f_0.8_3", "S2-RI-R1-5i_1_2",#2025-02-14
                 "S3-RI-A1-1i_1_3",#2025-02-19
                 "S4-DA-A2-4f_0.4_1","S4-CA-A2-1f_0.4_3","S4-CA-A2-5f_0.4_1","S4-DA-R1-3f_0.2_1","S4-DA-R1-3f_0.2_3",#2025-02-20
-                "S4-CA-R2-5f_0.8_1","S4-VA-R1-6f_0.8_4","S4-VA-R1-1f_0.8_4","S4-VA-P1-5i_1_3","S4-CA-P2-2f_0.8_1","S4-VA-P1-1i_1_3","S4-VA-P1-3i_1_3","S4-VA-P1-5i_1_4",#2025-02-21
+                "S4-VA-R1-6f_0.8_4","S4-VA-R1-1f_0.8_4","S4-VA-P1-5i_1_3","S4-CA-P2-2f_0.8_1","S4-VA-P1-1i_1_3","S4-VA-P1-3i_1_3","S4-VA-P1-5i_1_4",#2025-02-21
                 "S4-RI-P1-4f_0.8_1","S4-CU-A2-5i_1_3","S4-RI-P2-3i_1_2","S4-RI-R2-1i_1_3","S4-RI-R2-5i_1_3")#2025-02-24
 #2025-02-26 good
 
 #Exclude remarks with negative co2 peaks
-co2_negative_remarks<- c("S4-DA-A2-3f_0.8","S4-DA-A2-4f_0.8","S4-DA-A2-5f_0.8","S4-DA-A2-5f_0.4","S4-DA-A2-5f_0.2","S4-DA-A2-6f_0.8","S4-DA-A2-6f_0.4","S4-DA-A2-6f_0.2","S4-DA-A2-6f_0.1","S4-DA-A2-6f_0.6","S4-DA-P1-1f_0.8","S4-DA-R1-1f_0.8","S4-DA-R1-1f_0.4","S4-DA-R1-2f_0.8","S4-DA-R1-3f_0.8","S4-DA-R1-3f_0.4","S4-DA-R1-4f_0.8","S4-DA-R1-4f_0.4","S4-DA-R1-4f_0.2","S4-DA-R1-4f_0.6","S4-DA-R1-5f_0.8","S4-DA-R1-5f_0.4","S4-DA-R1-5f_0.2","S4-DA-R1-5f_0.6","S4-DA-R1-6f_0.8","S4-DA-R1-6f_0.4","S4-CA-A2-1f_0.8","S4-CA-A2-4f_0.8","S4-CA-A2-4f_0.4","S4-CA-A2-4f_0.2","S4-CA-A2-4f_0.6","S4-CA-A2-5f_0.8")#2025-02-20
-
+co2_negative_remarks<- c("S4-DA-A2-3f_0.8","S4-DA-A2-4f_0.8","S4-DA-A2-5f_0.8","S4-DA-A2-5f_0.4","S4-DA-A2-5f_0.2","S4-DA-A2-6f_0.8","S4-DA-A2-6f_0.4","S4-DA-A2-6f_0.2","S4-DA-A2-6f_0.1","S4-DA-A2-6f_0.6","S4-DA-P1-1f_0.8","S4-DA-R1-1f_0.8","S4-DA-R1-1f_0.4","S4-DA-R1-2f_0.8","S4-DA-R1-3f_0.8","S4-DA-R1-3f_0.4","S4-DA-R1-4f_0.8","S4-DA-R1-4f_0.4","S4-DA-R1-4f_0.2","S4-DA-R1-4f_0.6","S4-DA-R1-5f_0.8","S4-DA-R1-5f_0.4","S4-DA-R1-5f_0.2","S4-DA-R1-5f_0.6","S4-DA-R1-6f_0.8","S4-DA-R1-6f_0.4","S4-CA-A2-1f_0.8","S4-CA-A2-4f_0.8","S4-CA-A2-4f_0.4","S4-CA-A2-4f_0.2","S4-CA-A2-4f_0.6","S4-CA-A2-5f_0.8",#2025-02-20
+                         "S4-CA-R2-5f_0.8")#2025-02-21
 
 #CO2 of days 2025-02-17 and 2025-02-18 have very high deviations, nothing we can do. still, the differences between initial and final seem consistent
 co2_daysinspected<- c("2025-02-11","2025-02-10","2025-02-07","2025-02-12","2025-02-13","2025-02-14","2025-02-17","2025-02-18","2025-02-19","2025-02-20","2025-02-21","2025-02-24","2025-02-26")

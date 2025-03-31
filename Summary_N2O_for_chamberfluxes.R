@@ -15,7 +15,7 @@ library(readxl)
 
 #Directories
 folder_data<- "C:/Users/Miguel/Dropbox/Licor_N2O/"
-folder_resuts<- paste0(folder_data,"Results_ppm/")
+folder_resuts<- paste0(folder_data,"Results_ppm_newperpeak/")
 folder_samplelist<- paste0(folder_data, "Samplelist/")
 folder_output<- "C:/Users/Miguel/Dropbox/RESTORE4Cs - Fieldwork/Data/GHG/N2O_fluxes/"
 
@@ -59,10 +59,10 @@ n2o_atmchambers<- A %>%
   select(-c(d1,d2,exetainer_ID)) %>% 
   mutate(sample_volume=paste(sample,ml_injected, sep = "_")) %>% 
   group_by(sample_volume) %>% 
-  mutate(avg_N2Oppm=mean(N2O_ppm, na.rm=T),
-         sd_N2Oppm=sd(N2O_ppm, na.rm=T),
-         cv_N2Oppm=sd_N2Oppm/avg_N2Oppm*100,
-         n_N2Oppm=sum(!is.na(N2O_ppm)))
+  mutate(avg_N2Oppm=mean(ppm, na.rm=T),
+         sd_N2Oppm=sd(ppm, na.rm=T),
+         cv_N2Oppm=(sd_N2Oppm/avg_N2Oppm)*100,
+         n_N2Oppm=sum(!is.na(ppm)))
 
 #two exetainers ambiguous code but correctly identified to plot. Nothing to fix! its OK.
 n2o_atmchambers %>% filter(grepl("a|b",sample)) %>% select(sample, plot_ID, comment) %>% distinct()
@@ -81,11 +81,23 @@ n2o_toflag<- n2o_atmchambers %>%
 
 #Plot obs large dispersion:
 n2o_toflag %>% 
-  ggplot(aes(x=sample_volume, y=N2O_ppm,col=factor(dayofanalysis)))+
+  filter(!peak_id%in%discardpeaks) %>% 
+  filter(!sample_volume%in%discardsamples) %>%
+  mutate(avg_ppm=mean(ppm, na.rm=T),
+         sd_ppm= sd(ppm, na.rm=T),
+         cv_ppm=abs(sd_ppm/avg_ppm)) %>% 
+  filter(cv_ppm>0.05) %>%
+  arrange(desc(cv_ppm)) %>% 
+  ggplot(aes(x=factor(round(cv_ppm,3)), y=ppm, col=sample))+
+  geom_point()+
+  geom_label(aes(label=peak_id))
+
+n2o_toflag %>% 
+  ggplot(aes(x=sample_volume, y=ppm,col=factor(dayofanalysis)))+
   geom_text(aes(label=peak_num))
 
 n2o_toflag %>% 
-  ggplot(aes(x=peak_num, y=N2O_ppm,col=factor(dayofanalysis)))+
+  ggplot(aes(x=peak_num, y=ppm,col=factor(dayofanalysis)))+
   geom_text(aes(label=sample_volume))+
   geom_line(aes(group=sample_volume))
 
@@ -103,10 +115,10 @@ n2o_atmchambers_good<- n2o_atmchambers %>%
   filter(!sample_volume%in%discardsamples) %>% 
   filter(!peak_id%in%discardpeaks) %>% 
   group_by(sample_volume) %>% 
-  mutate(avg_N2Oppm=mean(N2O_ppm, na.rm=T),
-         sd_N2Oppm=sd(N2O_ppm, na.rm=T),
+  mutate(avg_N2Oppm=mean(ppm, na.rm=T),
+         sd_N2Oppm=sd(ppm, na.rm=T),
          cv_N2Oppm=sd_N2Oppm/avg_N2Oppm*100,
-         n_N2Oppm=sum(!is.na(N2O_ppm)))
+         n_N2Oppm=sum(!is.na(ppm)))
 
 #check cv is good now:
 n2o_atmchambers_good %>% 
@@ -122,7 +134,7 @@ rm(n2o_atmchambers,n2o_toflag)
 #check atm samples are comparable:
 n2o_atmchambers_good %>% 
   filter(exe_type=="atmosphere") %>% 
-  ggplot(aes(x=plot_ID, y=N2O_ppm))+
+  ggplot(aes(x=plot_ID, y=ppm))+
   geom_point()+
   facet_grid(pilot_site~subsite, scales="free")
 
@@ -138,7 +150,7 @@ A %>%
   filter(!peak_id%in%discardpeaks) %>% 
   filter(!is.na(pilot_site)) %>% 
   # filter(exe_type!="headspace") %>% 
-  ggplot(aes(x=plot_ID, y=N2O_ppm,col=exe_type))+
+  ggplot(aes(x=plot_ID, y=ppm,col=exe_type))+
   geom_point()+
   facet_grid(pilot_site~subsite, scales="free")
 
@@ -148,7 +160,7 @@ A %>%
   left_join(y=S4fieldsheets, by=c("exetainer_ID")) %>% 
   filter(!is.na(pilot_site)) %>% 
   filter(grepl("S4-RI-P2",sample)) %>% 
-  ggplot(aes(x=plot_ID, y=N2O_ppm, col=exe_type))+
+  ggplot(aes(x=plot_ID, y=ppm, col=exe_type))+
   geom_point()+
   geom_label(aes(label=peak_id))+
   facet_grid(pilot_site~subsite, scales="free")
@@ -169,9 +181,9 @@ A %>%
 atm_avg<- n2o_atmchambers_good %>% 
   filter(exe_type=="atmosphere") %>% 
   group_by(subsite_ID) %>% 
-  summarise(atm_avg=mean(N2O_ppm, na.rm=T),
-            atm_cv=sd(N2O_ppm, na.rm = T)/atm_avg,
-            atm_n=sum(!is.na(N2O_ppm)))
+  summarise(atm_avg=mean(ppm, na.rm=T),
+            atm_cv=sd(ppm, na.rm = T)/atm_avg,
+            atm_n=sum(!is.na(ppm)))
 
 #Create table with n2o data for flux calculation keep cv and n of samples to calculate significance
 n2o_summary_atmchambers<- n2o_atmchambers_good %>% 
@@ -179,9 +191,9 @@ n2o_summary_atmchambers<- n2o_atmchambers_good %>%
   filter(exe_type=="air trapped") %>% 
   rename(lightcondition=`transparent or dark`, strata=Strata) %>% 
   group_by(campaign,pilot_site, subsite, subsite_ID, plot_ID, strata,lightcondition, comment, sample) %>% 
-  summarise(sample_avgN2Oppm=mean(N2O_ppm, na.rm=T),
-            sample_cv=sd(N2O_ppm, na.rm=T)/sample_avgN2Oppm,
-            sample_n= sum(!is.na(N2O_ppm)), 
+  summarise(sample_avgN2Oppm=mean(ppm, na.rm=T),
+            sample_cv=sd(ppm, na.rm=T)/sample_avgN2Oppm,
+            sample_n= sum(!is.na(ppm)), 
             atm_avgN2Oppm=mean(atm_avg, na.rm=T), #keep the atm data by doing the mean
             atm_cv=mean(atm_cv, na.rm=T),#keep the atm data by doing the mean
             atm_n=mean(atm_n,na.rm=T)) %>% #keep the atm data by doing the mean

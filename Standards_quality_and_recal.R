@@ -116,7 +116,6 @@ calibration_old <- read_csv(paste0(folder_cal, "Calibration_and_limit_of_detecti
   mutate(gas=tolower(gas)) %>% 
   select(gas, Intercept, Slope)
 
-####HERE##-------
 
 #AFTER THE NEW integration run for all, check variable names in integrated_samples to make sure everything works: 
 
@@ -125,14 +124,14 @@ calibration_old <- read_csv(paste0(folder_cal, "Calibration_and_limit_of_detecti
 #So: ppm = ((peaksum-Intercept)/(Slope*ml_injected))+peak_baseppm
 
 #CHECK HERE if it works well.
-#POTENTIALLY use 0 to substitute negative peak_base
-#IN any case, transform peak_base into ppm (currently)
+#POTENTIALLY use 0 to substitute negative peak_base (the formula works considering the dilution of injection with the carrier gas, negative peak_base ppm is an error in the calibration of the instruments, so that the real dilution is cero.)
 
 #Calculate Concentration ppms 
 injections_ppm <- injections %>% 
   left_join(calibration_old, by="gas") %>% 
   separate(peak_id, into = c("sample", "ml_injected","peak_no"), sep = "_",remove = F) %>% 
   mutate(peak_baseppm=peak_base/1000,
+         peak_baseppm=if_else(peak_baseppm<0,0,peak_baseppm), 
          ml_injected=as.numeric(gsub("[^0-9.]", "", ml_injected)),
          ppm = ((peaksum-Intercept)/(Slope*ml_injected))+peak_baseppm) %>% 
          # ppm = ((peaksum-Intercept))/(Slope*ml_injected)) %>% Old way of calibrate
@@ -234,7 +233,8 @@ all_standards %>%
   ggplot(aes(x=gas, y=overestimation, col=kept))+
   geom_violin(data=. %>% filter(kept=="Good"))+
   geom_boxplot(data=. %>% filter(kept=="Good"))+
-  geom_point(data=. %>% filter(kept=="excluded"))
+  geom_point(data=. %>% filter(kept=="excluded"))+
+  scale_y_continuous(breaks = seq(0.9,1.7, by=0.1))
   
 
 #Summary of over-estimation
@@ -259,12 +259,9 @@ all_standards %>%
 
 #AFTER MUCH THINKING and testing, we realize that the baseline must be included always in the calibration and in the re-calculation of concentrations. THis is because the peak-area is not proportional to the concentration of sample BUT to the difference in concentration between sample and baseline. 
 
-####CAUTION----
-#We need to adapt the integration procedure so that we always report the baseline concentration along with the base-corrected peak area. 
-
 #Theory for 1-point calibration: 
 
-#Licors have a well-established cero, so that we can directly obtain a calibration factor based on a single value of Area for an injection of known volume and concentration. 
+#Licors have a well-established cero (assumed), so that we can directly obtain a calibration factor based on a single value of base-corrected Area for an injection of known volume and concentration, knowing also the baseline concentration. 
 #The area of the peak is related to the concentration of sample in the following way: 
 
 #AREA = factor * (GHGinjection_ppm - GHGbaseline_ppm) * ml_injection
@@ -321,7 +318,8 @@ write.csv(new_calibration, file=paste0(folder_cal, "One-point_calibration_factor
   mutate(new_ppm=(peaksum/(ml_injected*factor))+peak_baseppm) %>% 
     ggplot(aes(x=gas, y=new_ppm/known_ppm, col=sampletype))+
     geom_violin()+
-    geom_boxplot()
+    geom_boxplot()+
+    scale_y_continuous(breaks = seq(0.9,1.7, by=0.1))
 
     
   
