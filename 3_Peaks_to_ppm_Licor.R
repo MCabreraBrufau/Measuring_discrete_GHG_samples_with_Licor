@@ -1,7 +1,7 @@
 #Peaks to ppm 
 
 
-#Description: this script uses integrated_injections files produced in the "Raw_to_peaks_..." script and calculates ppm for each peak based on the calibration, volume injected and peak baseline concentration measured. It outputs ppm data for each peak and for each sample
+#Description: this script uses integrated_injections files produced in the "Raw_to_peaks_..." script and calculates ppm for each peak based on the calibration factor, volume injected and peak baseline concentration measured. It outputs ppm data for each peak and for each sample
 
 #Clean WD
 rm(list=ls())
@@ -12,16 +12,17 @@ rm(list=ls())
 #Root
 folder_root <- "C:/Users/Miguel/Dropbox/Licor_N2O" # You have to make sure this is pointing to the right folder in your local machine
 
+#Data folders
+folder_results<- paste0(folder_root,"/Results_ppm")
+
 #Here is the repo root, from which we get the calibration:
 repo_root <- dirname(rstudioapi::getSourceEditorContext()$path)
-
-#Data folders
 folder_calibration <- paste0(repo_root,"/calibration")
-folder_results<- paste0(folder_root,"/Results_ppm_newperpeak")
 
 
 
-# ---- packages & functions ----
+
+# ---- Packages & functions ----
 library(tidyverse)
 library(readxl)
 library(lubridate)
@@ -29,6 +30,8 @@ library(stringr)
 library(ggpmisc)
 
 
+
+# ---- Calculate ppm--------
 #Get extracted data
 integratedfiles<- list.files(path = folder_results, pattern = "^integrated_injections_")
 ppmfiles<- list.files(path = folder_results, pattern = "^.*ppm_samples_")
@@ -57,7 +60,7 @@ for (i in integratedtoppm){
       mutate(ml_injected=as.numeric(gsub("[^0-9.]", "", ml_injected)),
              gas=gasname,
              peak_baseppm=peak_base/1000,
-             peak_baseppm=if_else(peak_baseppm<0,0,peak_baseppm), #We only keep baseline value if it is positive (negative baselines are a machine-error)
+             peak_baseppm=if_else(peak_baseppm<0,0,peak_baseppm), #We only keep baseline value if it is positive (negative baselines are a machine-error and should not be kept for ppm calculation)
              ppm= (peaksum/(factor*ml_injected))+peak_baseppm) %>% 
       select(dayofanalysis, gas, sample, ml_injected, peak_id, ppm, peaksum, peak_baseppm, unixtime_ofmax) %>% 
       mutate(datetime=as.POSIXct(unixtime_ofmax))

@@ -45,7 +45,7 @@ if (!dir.exists(folder_results)) {
 }
 
 
-# ---- packages & functions ----
+# ---- Packages & functions ----
 library(tidyverse)
 library(readxl)
 library(lubridate)

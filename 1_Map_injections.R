@@ -1,14 +1,22 @@
 #Map injections rawdata
 
-# ---
-# This script has been modified from https://github.com/MCabreraBrufau/Licor_N2O_scripts to identify and integrate peak not only for N2O but also for CO2 and CH4
-# ---
 
-#Description: This script creates a map_injection csv for every rawdata file. These are stored in the Map_injections folder and will be manually edited to correct label text, adapt time of labels or add labels that were not written in the data at the time of collection. 
 
-#Execute all:
+#Description: This script creates a map_injection csv file for every rawdata file. These are stored in the Map_injections folder and will be manually edited to correct label text, adapt time of labels or add labels that were not written in the rawdata at the time of collection. 
 
-{
+
+#Rules for labels:
+#1. Each label identifies an injection sequence (same sample, same volume)
+#2. Each label must be unique for a given day of analysis (preferable if they are unique across days as well)
+#3. The underscore symbol (i.e. "_" ) is reserved to separate the sample identity from the volume injected (in ml). We cannot include the underscore for any other purpose.
+#4. The injection volume must be present at the end of the label, in mL and separated from the sample identity with an underscore. 
+
+# Examples: "S4-CA-A1-5f_0.1 " sample S4-CA-A1-5f injected with 0.1 ml 
+
+#This script uses the first and last appearance of each unique remark throughout the raw-data file, this may lead to errors if remarks were re-used (i.e. same text in remark at different moments of the day).
+
+
+
 #clean WD
 rm(list=ls())
 
@@ -83,4 +91,4 @@ for (i in raw_files_withoutmap){
 
 #Clear WP again
 rm(list=ls())
-}
+

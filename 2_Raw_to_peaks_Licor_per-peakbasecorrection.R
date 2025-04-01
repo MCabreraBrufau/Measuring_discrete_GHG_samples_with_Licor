@@ -1,14 +1,14 @@
 #Raw to integrated peaks and baselines#
 
-# ---
-# This script has been modified from https://github.com/MCabreraBrufau/Licor_N2O_scripts to identify and integrate peak not only for N2O but also for CO2 and CH4
-# ---
-
-#Before to run this script, you must run "Map_injections.R" script and create the "corrected_XXX_map_injection..." file. You can copy directly the Tstart, Tend and label from the raw_mapinjection OR edit if you have something to change. 
-#IMPORTANT: With the new updated processing script you also need to specify in "corrected_XXX_map_injection..."which Licor was connected upstream (i.e. first in recieving the injected sample): options are "TG20" (for LicorN2O first) OR "TG10" (for LicorCH4&CO2 first).This info is used to set the width of integration windows according to the upstream-downstream position of the Licors. 
-
+#Before to run this script, you must run "Map_injections.R" script and manually create the "corrected_XXX_map_injection..." file in the same folder. You can copy directly the Tstart, Tend and label from the raw_mapinjection OR edit if you have something to change. You also need to specify in "corrected_XXX_map_injection..."which Licor was connected upstream (i.e. first in receiving the injected sample): options are "TG20" (for LicorN2O first) OR "TG10" (for LicorCH4&CO2 first).This info is used to set the width of integration windows according to the upstream-downstream position of the Licors. 
 
 #Description: this script takes raw-files from Li-COR 7820 and Li-COR 7810 containing discrete injections, corrected injection_sequences (with label, start and stop) and calculates integrated peaks along with signal-to-noise ratio for each injection. It also generates inspection plots (baseline correction & integration) and stores the results in csv format. It also extracts the baseline data for ambient lab air and zero-Air from cylinder. 
+
+#Peak detection is based on difference between max and percentile-25 of each remark
+#Integration windows are fixed for every gas depending on the upstream-downstream Licor configuration
+#Baseline correction is performed for every peak individually as the average signal of the first and last points in the integration window
+
+#For iterative runs: the script checks which data has already been integrated. For re-integrating after any edit in map_injections, you must first delete the integrated_injections csv files of the corresponding raw-file. 
 
 
 #Clean WD
@@ -21,34 +21,33 @@ rm(list=ls())
 #folder_root <- dirname(rstudioapi::getSourceEditorContext()$path)
 #But you can set the folder in other path
 
-folder_root<- "C:/Users/Miguel/Dropbox/Licor_N2O" # You have to make sure this is pointing to the write folder on your local machine
+folder_root<- "C:/Users/Miguel/Dropbox/Licor_N2O" # You have to make sure this is pointing to the right folder on your local machine
 
 #Data folders
 folder_raw <- paste0(folder_root,"/Rawdata") #contains unedited files downloaded from licor
 
-#If you ran the Map_injections.R script, this folder have already been created, if not, run it
-folder_mapinjections<- paste0(folder_root,"/Map_injections") #Contains csvs with startstop times of injections and their corresponding labels, corrections should be made manually when needed (editting the csvs and re-saving with "corrected_" prefix)
+#Map injections
+folder_mapinjections<- paste0(folder_root,"/Map_injections") #Contains corrected_map_injections csv files with start and stop times of remarks and their corresponding labels, corrections should be made manually when needed (editing the csvs and re-saving with "corrected_" prefix)
 
 #Folder for plots
-folder_plots<-  paste0(folder_root,"/Integration plots_newperpeak") #One pdf per dayofinjections (auto-name from rawfile name), plots of each injection sequence (baseline correction & integration)
+folder_plots<-  paste0(folder_root,"/Integration plots") #Here we will generate one pdf per gas and raw-file (auto-name), plots of each injection sequence (baseline correction & integration)
 if (!dir.exists(folder_plots)) {
   # If it doesn't exist, create the folder
   dir.create(folder_plots)
 }
 
 #Folder for results
-folder_results<- paste0(folder_root,"/Results_ppm_newperpeak")#One csv per dayofinjections will be created (auto-name from rawfile name), with individual peak parameters (label, peak_id, peaksum, peakmax, unixtime_ofmax, raw_peaksum, dayofanalysis, SNR)
+folder_results<- paste0(folder_root,"/Results_ppm")#Here we will generate one csv per gas and raw-file (auto-name), with individual peak parameters.
 if (!dir.exists(folder_results)) {
   # If it doesn't exist, create the folder
   dir.create(folder_results)
 }
 
 
-# ---- packages & functions ----
+# ---- Packages & functions ----
 library(tidyverse)
 library(readxl)
 library(lubridate)
-library(ptw)
 library(pracma)
 library(stringr)
 library(ggpmisc)
@@ -58,8 +57,9 @@ repo_root <- dirname(rstudioapi::getSourceEditorContext()$path)
 files.sources = list.files(path = paste0(repo_root,"/functions"), full.names = T)
 for (f in files.sources){source(f)}
 
-###1. Check data to integrate####
 
+
+###1. Check data to integrate####
 #Get rawfiles
 rawfiles<- list.files(path = folder_raw, pattern = ".data")
 
@@ -173,7 +173,7 @@ for (i in rawtointegrate){
       #Make sure whole inj_data has the correct label inj
       inj_data$label<- inj
       
-      ######2.1. Baselines CH4#####
+      ######2.1. Baselines #####
       if (grepl("baseline", inj)){
         print(paste0('Baseline recording: ',inj))
         
@@ -196,12 +196,7 @@ for (i in rawtointegrate){
         
         #Detect and integrate peaks, plot results, calculate  baseline SD within label for Signal to Noise ratio
         
-        # ##____Base-correction##### OLD NOT RUN
-        # #Base-correct injection sequence, using asymetric least-square. 
-        # inj_data<-inj_data %>% 
-        #   mutate(gas_bc=baseline.corr(!!sym(gas),lambda=1e5, p=0.0001))
-        
-        ##____Peak-max detection#####
+        ##_Detect peaks#####
         
         #Find local maxima in remark and add max_id (label_1,label_2,...) : 
         #Criteria for local maximum:
@@ -221,7 +216,7 @@ for (i in rawtointegrate){
           mutate(peak_id = ifelse(is_localmaxgas, paste0(label,"_",cumsum(is_localmaxgas)), NA)) %>%  #Add unique peak_id for each local maximum found 
           ungroup()
         
-        ##____Peak-window selection#####
+        ##_Set window#####
         #Consider peakwindow as max height + 4 leading and X trailing points. (i.e. peak width == 12points), 
         
         inj_data <- inj_data %>%
@@ -266,7 +261,7 @@ for (i in rawtointegrate){
           }))
         
         
-        ##____Peak integration gas#####
+        ##_Integration#####
         
         #Get baseline avg and SD from outside the peak windows
         avg_nopeak<-inj_data %>% 
@@ -302,7 +297,7 @@ for (i in rawtointegrate){
                     unixtime_ofmax=unixtime[gas_bc==peakmax],
                     raw_peaksum=sum(!!sym(gas)),.groups = "keep") %>%
           mutate(dayofanalysis=dayofanalysis,
-                 peakSNR=peaksum/(3*sd_nopeak),
+                 peakSNR=peaksum/(sd_nopeak),
                  avg_remark=avg_remark,
                  sd_remark=sd_remark,
                  n_remark=n_remark,
@@ -322,7 +317,7 @@ for (i in rawtointegrate){
           mutate(gas_bc=!!sym(gas) - ( (first(!!sym(gas)) + last(!!sym(gas)))/2 ))
         
         
-        ###____Create integration plots#####
+        ###_Plots#####
         p<-ggplot()+
           geom_point(data=subset(peakdataseries,!is.na(peak_id)), aes(x=as.POSIXct(unixtime),y=gas_bc,col="2_peaks base corrected"))+
           geom_line(data=subset(peakdataseries), aes(x=as.POSIXct(unixtime),y=gas_bc,col="2_peaks base corrected"))+
@@ -360,7 +355,7 @@ for (i in rawtointegrate){
     write.csv(A,file = paste0(folder_results,"/", "integrated_injections_",gas, "_", i, ".csv"),row.names = F)
     
     #Save plots of integrations: use i for naming convention of pdf
-    print(paste0("Plotting integrations of day: ", i))
+    print(paste0("Plotting integrations rawfile: ", i))
     #plot every injection sequence and their integrals: 
     pdf(file = paste0(folder_plots,"/Integrations_",gas, "_",i,".pdf"))  # Open PDF device
     

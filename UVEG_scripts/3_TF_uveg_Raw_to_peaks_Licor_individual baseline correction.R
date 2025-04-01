@@ -1,8 +1,5 @@
 #Raw to integrated peaks and baselines (with per-peak baseline correction)#
 
-# ---
-# This script has been modified from https://github.com/MCabreraBrufau/Licor_N2O_scripts to identify and integrate peak not only for N2O but also for CO2 and CH4
-# ---
 
 #Peak detection has been based on a supervised automated approach by running the script:"2_TF_uveg_detect_injections CO2CH4.R" 
 #Detected peaks have been manually reviewed and wrong peaks discarded when needed. All detected peaks and their decisions are logged in csv file alldetected_peaks_touse_correct.csv
@@ -276,7 +273,7 @@ for (i in rawtointegrate){
                     unixtime_ofmax=unixtime[gas_bc==peakmax],
                     raw_peaksum=sum(!!sym(gas)),.groups = "keep") %>%
           mutate(dayofanalysis=dayofanalysis,
-                 peakSNR=peaksum/(3*sd_baseline),
+                 peakSNR=peaksum/(sd_baseline),
                  avg_remark=avg_remark,
                  sd_remark=sd_remark,
                  n_remark=n_remark,
