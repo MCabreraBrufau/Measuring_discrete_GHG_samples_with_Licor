@@ -408,10 +408,30 @@ tz<- "Europe/Madrid"
     }#end loop for each gas species
   } #end of integration loop
   
-
+rm(a,A,B,inj_data, integated, mapinj, p, peakdataseries, plotspeak, raw_data, 
+   avg_nopeak, avg_peaksum, avg_remark, dayofanalysis, f, files.sources, firstlicor,gas, gasforloop, gasname, high_boundary_peak, i, inj, unixend, unixstart, sd_remark, sd_peaksum, sd_nopeak,tz, plot_name, n_nopeak, n_remark, low_boundary_peak)
 
 #3. Peak Selection------
   
 #The data provided by uveg is extremely noisy, especially for CO2. unclear if they inyected standard with known CO2, but the baseline is too noisy. 
   
+#Apparently cal injections are only of CH4 standards. 
   
+integratedch4files<- list.files(path = folder_results, pattern = "^integrated_injections_CH4",full.names = T)
+  
+rm(i,a)
+  for (i in integratedch4files){
+a<- read.csv(i)
+  
+ if (i==integratedch4files[1]){ch4<- a} else{ ch4<- rbind(ch4, a)}
+  }
+rm(a)
+
+
+#POR AQUI: 
+
+ch4_clean<- ch4 %>%
+  separate(peak_id, into = c("sample", "ml_injected", "peakno"), sep = "_", remove = F) %>% 
+  separate(sample, into = c())
+  filter(!(label=="peak_id%in%c(""))
+
