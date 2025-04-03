@@ -432,6 +432,22 @@ rm(a)
 
 ch4_clean<- ch4 %>%
   separate(peak_id, into = c("sample", "ml_injected", "peakno"), sep = "_", remove = F) %>% 
-  separate(sample, into = c())
-  filter(!(label=="peak_id%in%c(""))
+  # filter(sample!="ch4-9-10239ppb") %>% 
+  filter(!label%in%c("ch4-7-10036ppb_0.8","ch4-8-10036ppb_0.7")) %>% 
+  filter(!peak_id%in%paste0("ch4-1-10036ppb_0.1_",c("1","2","3","4","6"))) %>% 
+  mutate(peakbase_ppm=peak_base/1000,
+         ppmstd=10.036,
+         ml_injected=as.numeric(ml_injected))
+
+
+ggplot(ch4_clean, aes(x=(ppmstd-peakbase_ppm)*ml_injected, y=peaksum))+
+  geom_point()+
+  geom_abline(intercept = 0, slope = 203)+
+  geom_smooth(method="lm")
+
+
+
+
+
+
 

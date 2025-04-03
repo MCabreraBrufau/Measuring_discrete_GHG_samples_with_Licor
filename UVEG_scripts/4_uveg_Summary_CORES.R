@@ -479,6 +479,7 @@ cores_averageremark<- cores %>%
 #Join all estimates
 allcores<- rbind(cores_peaks, cores_peakbase, cores_averageremark)
 
+
 # TF cores S1
 s1cores<- allcores %>% 
   filter(grepl("^S1", sample))

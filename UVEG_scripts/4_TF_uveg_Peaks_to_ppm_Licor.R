@@ -1,4 +1,4 @@
-#Peaks to ppm 
+#Peaks to ppm for TF cores UVEG
 
 # ---
 # This script has been modified from https://github.com/MCabreraBrufau/Licor_N2O_scripts to identify and integrate peak not only for N2O but also for CO2 and CH4
@@ -11,7 +11,7 @@
 #The appropriateness of UB calibration will be evaluated by comparing the values obtained from samples analyzed with both the UVEG and UB method. 
 
 
-#CAUTION: ml_injected is overriden with 0.5 for testing purposes (unique value provided), for final calculation, check that this is true
+#CAUTION: ml_injected is overriden with 0.5 for testing purposes (unique value provided for ~80% of samples, likely all injections with same volume), for final calculation, check that this is true
 
 
 #Clean WD

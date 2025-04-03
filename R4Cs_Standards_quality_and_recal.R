@@ -17,7 +17,7 @@ library(tidyverse)
 
 #Directories
 folder_data<- "C:/Users/Miguel/Dropbox/Licor_N2O/"
-folder_resuts<- paste0(folder_data,"Results_ppm_newperpeak/")
+folder_resuts<- paste0(folder_data,"Results_ppm/")
 repo_root <- dirname(rstudioapi::getSourceEditorContext()$path)
 folder_cal<- paste0(repo_root, "/Calibration/")
 
@@ -160,7 +160,7 @@ inj<- injections_ppm %>%
   filter(dayofanalysis%in%dateswith3gases) %>% 
   mutate(sampletype=case_when(grepl("air",sample)~"air",
                               grepl("ppm",sample)~"standard"),
-         known_ppm=case_when(grepl("ppm",sample)&gas=="n2o"~6,
+         known_ppm=case_when(grepl("ppm",sample)&gas=="n2o"~6.,
                              grepl("ppm",sample)&gas=="co2"~3000,
                              grepl("ppm",sample)&gas=="ch4"~15.29,
                              TRUE~NA_real_))
@@ -311,8 +311,8 @@ write.csv(new_calibration, file=paste0(folder_cal, "One-point_calibration_factor
   all_standards %>% 
     left_join(new_calibration %>% select(gas,factor), by = "gas") %>% 
     group_by(gas, sampletype) %>% 
-    mutate(lower = quantile(peaksum, 0.025),
-           upper = quantile(peaksum, 0.975)
+    mutate(lower = quantile(peaksum, 0.1),
+           upper = quantile(peaksum, 0.9)
     ) %>% 
     filter(between(peaksum, lower, upper)) %>% 
   mutate(new_ppm=(peaksum/(ml_injected*factor))+peak_baseppm) %>% 
@@ -328,8 +328,8 @@ write.csv(new_calibration, file=paste0(folder_cal, "One-point_calibration_factor
     left_join(new_calibration %>% select(gas,factor), by = "gas") %>% 
     mutate(new_ppm=(peaksum/(ml_injected*factor))+peak_baseppm) %>% 
     group_by(gas, sampletype) %>% 
-    mutate(lower = quantile(peaksum, 0.025),
-           upper = quantile(peaksum, 0.975)
+    mutate(lower = quantile(peaksum, 0.1),
+           upper = quantile(peaksum, 0.90)
     ) %>% 
     filter(between(peaksum, lower, upper)) %>% 
     summarise(avg=mean(new_ppm/known_ppm,na.rm=T),
