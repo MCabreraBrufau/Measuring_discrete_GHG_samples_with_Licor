@@ -1,17 +1,12 @@
-#Peaks to ppm for TF cores UVEG
+#Peaks to ppm for TFMIX cores UVEG
 
 # ---
 # This script has been modified from https://github.com/MCabreraBrufau/Licor_N2O_scripts to identify and integrate peak not only for N2O but also for CO2 and CH4
 # ---
 
-#Description: this script uses integrated_injections files produced in the TF_uveg_Raw_to_peaks_Licor_individual baseline correction.R script and calculates ppm for each peak based on the UB calibration curve, volume injected and peak baseline. It outputs ppm data for each peak and for each sample. 
+#Description: this script uses integrated_injections files produced in the TFMIX_uveg_Raw_to_peaks_Licor_individual baseline correction.R script and calculates ppm for each peak based on the adjusted UB calibration curve, volume injected and peak baseline. It outputs ppm data for each peak and for each sample. 
 
-#UB calibration is based on zero-baseline injections (all of the GHG amount is contained within the peak area), UVEG injections on the other hand, have significant baselines, the area of peaks is proportional to the "excess concentration" in the sample with respect to its baseline and then the baseline is added. 
-
-#The appropriateness of UB calibration will be evaluated by comparing the values obtained from samples analyzed with both the UVEG and UB method. 
-
-
-#CAUTION: ml_injected is overriden with 0.5 for testing purposes (unique value provided for ~80% of samples, likely all injections with same volume), for final calculation, check that this is true
+#UB calibration adjustment for UVEG Licor was based on cross calibration with samples injected with the two instruments.
 
 
 #Clean WD
@@ -33,7 +28,7 @@ repo_root <- dirname(rstudioapi::getSourceEditorContext()$path)
 
 #Data folders
 folder_calibration <- paste0(folder_root,"/calibration_uveg")
-folder_results<- paste0(folder_root,"/TF_Results_ppm")
+folder_results<- paste0(folder_root,"/TFmix_Results_ppm")
 
 
 
@@ -53,7 +48,7 @@ ppmfiles<- NULL
 #Select integratedfiles without ppm data
 integratedtoppm<- gsub(".csv","",gsub("integrated_injections_","",integratedfiles[
   !gsub(".csv","",gsub("integrated_injections_","",integratedfiles))%in%gsub(".csv","",gsub("^.*ppm_samples_","",ppmfiles))]))#  integrated files "rawcode" without corresponding ppmfiles "rawcode"
-  
+
 #Get calibration curve: test with the one-point UB calibration for the moment 
 calibration <- read_csv(paste0(folder_calibration, "/One-point_calibration_factor.csv"),show_col_types = F)
 
@@ -68,32 +63,30 @@ calibration$factor[calibration$gas=="ch4"]<- 235#CH4 slope was adjusted manually
 for (i in integratedtoppm){
   #Take the correct calibration curve for the gas
   gasname <- tolower(substr(i, 1, 3))
-
+  
   factor<- calibration %>% filter(gas==gasname) %>% select(factor) %>% pull()
   # slope <- calibration %>% filter(Species == gasname) %>% select(Slope) %>% pull()
   # intercept <- calibration %>% filter(Species == gasname) %>% select(Intercept) %>% pull()
-
+  
   #Load integrated peaks of integratedfile i
   int<- read.csv(paste0(folder_results,"/","integrated_injections_",i,".csv"))
-
-    #Using the UB calibration (baseline==0ppm), and then adding on top the peak_base
-    peak_ppm<- int %>% 
-      separate(peak_id, into = c("sample", "ml_injected","peak_no"), sep = "_",remove = F) %>% 
-      mutate(ml_injected=as.numeric(gsub("[^0-9.]", "", ml_injected)), 
-             peakbase_ppm=peak_base/1000,
-             !!paste0(gasname, "_ppm") := (peaksum/(factor*ml_injected)) + peakbase_ppm,
-             nopeakbase_avg_ppm =avg_baseline/1000,
-             nopeakbase_sd_ppm =sd_baseline/1000,
-             remark_avg_ppm =avg_remark/1000,
-             remark_sd_ppm =sd_remark/1000) %>%
-      select(dayofanalysis, sample, ml_injected, peak_id, !!paste0(gasname, "_ppm"), unixtime_ofmax, peakSNR,peaksum, peakbase_ppm,nopeakbase_avg_ppm,nopeakbase_sd_ppm,remark_avg_ppm,remark_sd_ppm) %>% 
-      mutate(datetime=as.POSIXct(unixtime_ofmax))
-
+  
+  #Using the UB calibration (baseline==0ppm), and then adding on top the peak_base
+  peak_ppm<- int %>% 
+    separate(peak_id, into = c("sample", "ml_injected","peak_no"), sep = "_",remove = F) %>% 
+    mutate(ml_injected=as.numeric(gsub("[^0-9.]", "", ml_injected)), 
+           peakbase_ppm=peak_base/1000,
+           !!paste0(gasname, "_ppm") := (peaksum/(factor*ml_injected)) + peakbase_ppm,
+           nopeakbase_avg_ppm =avg_baseline/1000,
+           nopeakbase_sd_ppm =sd_baseline/1000,
+           remark_avg_ppm =avg_remark/1000,
+           remark_sd_ppm =sd_remark/1000) %>%
+    select(dayofanalysis, sample, ml_injected, peak_id, !!paste0(gasname, "_ppm"), unixtime_ofmax, peakSNR,peaksum, peakbase_ppm,nopeakbase_avg_ppm,nopeakbase_sd_ppm,remark_avg_ppm,remark_sd_ppm) %>% 
+    mutate(datetime=as.POSIXct(unixtime_ofmax))
+  
   #Save ppm of peaks
   write.csv(peak_ppm, file = paste0(folder_results, "/","ppm_samples_",i,".csv"), row.names = F)
-
+  
 }
-
-
 
 

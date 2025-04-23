@@ -103,55 +103,55 @@ write.csv(master_map_tocorrect, file = paste0(folder_mapinjections,"/tocorrect_m
 #Manually modify tocorrect_master_map.csv and save with name corrected_master_map.csv
 #Iterative process, to modify anything, always start with tocorrect_master_map file and save changes as corrected_master_map
 
-
-str(master_map_tocorrect$datetoorder)
-
-
-
-
-
-##---OLD missing-----
-
-#ADAPT TO select name well(everything between the last appearance of "/" and the first appearance of ".")
-#Get raw files without corresponding map injection: 
-raw_files_withoutmap<- raw_ofinterest[!str_extract(raw_ofinterest, "(?<=/)[^/]+(?=\\.)")%in%gsub(".csv", "", gsub(pattern = "raw_.*_map_injection_","",maps_done))]
-
-
-#List raw files (for Li-7820 and Li-7810) present in folder_raw
-# go through the RAW data (.txt or .data, not .Rdata, not Licor850)
-raw_files <- list.files(path = folder_raw, pattern = c(".txt|.data"), full.names = T, recursive = T)
-# fs <- list.files(path = datapathRAW, pattern = c(".txt", ".data"), full.names = T, recursive = T)
-r <- grep(pattern = ".RData|Licor850",x=raw_files)
-raw_files <- raw_files[-r]
-rm(r)
-
-
-
-
-#Collect Tstart Tend and labels for all unique remarks of every raw_file_withoutmap
-#Save these details in csv files named "raw_map_injection_"[rawfilename without".data"].csv 
-for (i in raw_files_withoutmap){
-    a<- read_Licor_TG10(i)
-    gas <- "CO2_and_CH4"
-  
-    # Extract text between the last "/" and the first "."
-    filename <- str_extract(i, "(?<=/)[^/]+(?=\\.)")
-      
-    #ADAPT TO USE ONLY unixtime column, from that create date and UTCtime
-  a <- a %>% 
-    mutate(datelabel=paste0(date,"_",label)) %>% #Added grouping by date to avoid duplicate remark issue
-    group_by(datelabel,label) %>% 
-    summarise(date=first(date),Tstart=first(UTCtime), Tend =last(UTCtime)) %>% 
-    ungroup() %>% 
-    arrange(date,Tstart) %>% 
-    mutate(rawfile=i) %>% 
-    select(date, Tstart, Tend, label, rawfile) %>% 
-    mutate(Tstart_correct=NA,	Tend_correct=NA,	label_correct=NA, firstlicor_TG10_or_TG20=NA)#Add empty columns to manually correct the data
-  
-    
-  # write.csv(a,file = paste0(folder_mapinjections,"/raw_", gas, "_map_injection_", filename, ".csv"),row.names = F)
-}
-
-#Clear WP again
-rm(list=ls())
-
+# 
+# str(master_map_tocorrect$datetoorder)
+# 
+# 
+# 
+# 
+# 
+# ##---OLD missing-----
+# 
+# #ADAPT TO select name well(everything between the last appearance of "/" and the first appearance of ".")
+# #Get raw files without corresponding map injection: 
+# raw_files_withoutmap<- raw_ofinterest[!str_extract(raw_ofinterest, "(?<=/)[^/]+(?=\\.)")%in%gsub(".csv", "", gsub(pattern = "raw_.*_map_injection_","",maps_done))]
+# 
+# 
+# #List raw files (for Li-7820 and Li-7810) present in folder_raw
+# # go through the RAW data (.txt or .data, not .Rdata, not Licor850)
+# raw_files <- list.files(path = folder_raw, pattern = c(".txt|.data"), full.names = T, recursive = T)
+# # fs <- list.files(path = datapathRAW, pattern = c(".txt", ".data"), full.names = T, recursive = T)
+# r <- grep(pattern = ".RData|Licor850",x=raw_files)
+# raw_files <- raw_files[-r]
+# rm(r)
+# 
+# 
+# 
+# 
+# #Collect Tstart Tend and labels for all unique remarks of every raw_file_withoutmap
+# #Save these details in csv files named "raw_map_injection_"[rawfilename without".data"].csv 
+# for (i in raw_files_withoutmap){
+#     a<- read_Licor_TG10(i)
+#     gas <- "CO2_and_CH4"
+#   
+#     # Extract text between the last "/" and the first "."
+#     filename <- str_extract(i, "(?<=/)[^/]+(?=\\.)")
+#       
+#     #ADAPT TO USE ONLY unixtime column, from that create date and UTCtime
+#   a <- a %>% 
+#     mutate(datelabel=paste0(date,"_",label)) %>% #Added grouping by date to avoid duplicate remark issue
+#     group_by(datelabel,label) %>% 
+#     summarise(date=first(date),Tstart=first(UTCtime), Tend =last(UTCtime)) %>% 
+#     ungroup() %>% 
+#     arrange(date,Tstart) %>% 
+#     mutate(rawfile=i) %>% 
+#     select(date, Tstart, Tend, label, rawfile) %>% 
+#     mutate(Tstart_correct=NA,	Tend_correct=NA,	label_correct=NA, firstlicor_TG10_or_TG20=NA)#Add empty columns to manually correct the data
+#   
+#     
+#   # write.csv(a,file = paste0(folder_mapinjections,"/raw_", gas, "_map_injection_", filename, ".csv"),row.names = F)
+# }
+# 
+# #Clear WP again
+# rm(list=ls())
+# 

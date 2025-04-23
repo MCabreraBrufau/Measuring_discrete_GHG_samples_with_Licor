@@ -86,12 +86,9 @@ notcores<- all %>% filter(!sample%in%cores$sample)
 
 ##---2. Inspect & clean----
 
-#####HERE------
-#Here we have to perform the selection of injections based on their deviation and on the inspection plots, we will keep the average peakbaseline value when no peak is detected.
+#Here we perform the selection of injections based on their deviation and on the inspection plots, we will keep the average peakbaseline value when no peak is detected.
 
-#Peak detection will be based on peakSNR (peakarea/3*baseline_sd): custom threshold after exploration
-
-#Peaks not detected with peakSNR will be visually inspected to determine whether we use them as peaks ( (peaksum/ml_injected*factor) + peakbase) or we keep the value of the baseline (one of peakbase_ppm, nopeakbase_avg_ppm,remark_avg_ppm). 
+#Peaks will be visually inspected to determine whether we use them as peaks ( (peaksum/ml_injected*factor) + peakbase) or we keep the value of the baseline (one of peakbase_ppm, nopeakbase_avg_ppm,remark_avg_ppm). 
 
 
 
@@ -140,7 +137,7 @@ test %>%
   geom_label(aes(label=peak_id))
 
 
-ch4_peakout<- c("S1-CA-R2-2f_0.5_1","S1-CA-R2-3f_0.5_1","S1-CA-A1-3f_0.5_2","S1-CA-A1-3f_0.5_4","S1-CA-A1-4f_0.5_1","S1-CA-P2-6f_0.5_1",
+ch4_peakout<- c("S1-CA-R2-2f_0.5_1","S1-CA-R2-3f_0.5_1","S1-CA-A1-3f_0.5_2","S1-CA-A1-3f_0.5_4","S1-CA-A1-4f_0.5_1","S1-CA-P2-6f_0.5_1","S1-CA-R1-3f_0.5_1",
                 "S1-CU-R2-2f_0.5_1","S1-CU-R1-1f_0.5_5","S1-CU-P1-2f_0.5_2","S1-CU-P2-6f_0.5_1","S1-CU-R1-5f_0.5_1",
                 "S1-DA-R1-6f_0.5_1","S1-DA-R1-6f_0.5_2","S1-DA-P1-3f_0.5_2","S1-DA-P2-2f_0.5_1","S1-DA-R1-1f_0.5_1","S1-DA-R1-1f_0.5_2","S1-DA-P2-4f_0.5_1","S1-DA-A2-4f_0.5_1","S1-DA-R2-2f_0.5_1","S1-DA-R2-6f_0.5_1","S1-DA-A1-5f_0.5_1","S1-DA-A1-2f_0.5_4","S1-DA-A2-5f_0.5_1",
                 "S1-DU-A2-1f_0.5_1","S1-DU-A1-5f_0.5_1","S1-DU-P1-5f_0.5_3",
@@ -148,7 +145,7 @@ ch4_peakout<- c("S1-CA-R2-2f_0.5_1","S1-CA-R2-3f_0.5_1","S1-CA-A1-3f_0.5_2","S1-
                 "S1-VA-A2-5f_0.5_1","S1-VA-P1-1f_0.5_1","S1-VA-P2-3f_0.5_2","S1-VA-P2-1f_0.5_1",
                 "S2-CA-A1-5f_0.5_1","S2-CA-R2-3f_0.5_3","S2-CA-A2-1f_0.5_1","S2-CA-R1-2f_0.5_1","S2-CA-P2-1f_0.5_1",
                 "S2-CU-A2-3f_0.5_1","S2-CU-A2-5f_0.5_1","S2-CU-A2-6f_0.5_1","S2-CU-A2-4f_0.5_1","S2-CU-A1-6f_0.5_1","S2-CU-A1-1f_0.5_1","S2-CU-R1-3f_0.5_1","S2-CU-A1-4f_0.5_1","S2-CU-P2-5f_0.5_1","S2-CU-P2-1f_0.5_1","S2-CU-R1-6f_0.5_3","S2-CU-R2-1f_0.5_1","S2-CU-P2-2f_0.5_1","S2-CU-R1-5f_0.5_3","S2-CU-A2-1f_0.5_1","S2-CU-P2-3f_0.5_1",
-                "S2-DA-R1-5f_0.5_1","S2-DA-R1-3f_0.5_1","S2-DA-R1-6f_0.5_1","S2-DA-P2-3f_0.5_1","S2-DA-P2-4f_0.5_1","S2-DA-P2-1f_0.5_1","S2-DA-A1-6f_0.5_3","S2-DA-A1-3f_0.5_3","S2-DA-P2-6f_0.5_2","S2-DA-R1-1f_0.5_2","S2-DA-A1-1f_0.5_3","S2-DA-P2-2f_0.5_1","S2-DA-P1-3f_0.5_1",
+                "S2-DA-R1-5f_0.5_1","S2-DA-R1-3f_0.5_1","S2-DA-R1-6f_0.5_1","S2-DA-P2-3f_0.5_1","S2-DA-P2-4f_0.5_1","S2-DA-P2-1f_0.5_1","S2-DA-A1-6f_0.5_3","S2-DA-A1-3f_0.5_3","S2-DA-A1-4f_0.5_1","S2-DA-A1-4f_0.5_2","S2-DA-P2-6f_0.5_2","S2-DA-R1-1f_0.5_2","S2-DA-A1-1f_0.5_3","S2-DA-P2-2f_0.5_1","S2-DA-P1-3f_0.5_1",
                 "S2-DU-R2-6f_0.5_1","S2-DU-R2-4f_0.5_1","S2-DU-R1-1f_0.5_2","S2-DU-P1-5f_0.5_1","S2-DU-A2-1f_0.5_1","S2-DU-A2-6f_0.5_1",
                 "S2-RI-A1-5f_0.5_1","S2-RI-A1-6f_0.5_1","S2-RI-P1-1f_0.5_4","S2-RI-P1-4f_0.5_4",
                 "S2-VA-R1-1f_0.5_1","S2-VA-R1-5f_0.5_1","S2-VA-R1-4f_0.5_1","S2-VA-R1-3f_0.5_1","S2-VA-P2-6f_0.5_1",
@@ -158,11 +155,11 @@ ch4_peakout<- c("S1-CA-R2-2f_0.5_1","S1-CA-R2-3f_0.5_1","S1-CA-A1-3f_0.5_2","S1-
                 "S3-RI-P1-1f_0.5_1","S3-RI-P1-1f_0.5_2","S3-RI-R2-6f_0.5_3","S3-RI-P1-5f_0.5_3","S3-RI-A1-2f_0.5_4","S3-RI-R2-2f_0.5_1","S3-RI-R2-2f_0.5_2","S3-RI-R2-5f_0.5_1",
                 "S3-VA-A2-2f_0.5_2","S3-VA-R1-2f_0.5_3","S3-VA-P1-3f_0.5_1","S3-VA-P1-3f_0.5_2","S3-VA-R1-3f_0.5_1","S3-VA-R1-6f_0.5_1","S3-VA-A2-1f_0.5_1","S3-VA-A2-1f_0.5_2","S3-VA-A1-2f_0.5_1","S3-VA-A1-2f_0.5_2","S3-VA-A1-2f_0.5_3")#peaks that cannot be used (for anything)
 
-ch4_samples4peakbase<- c("S1-CA-A1-2f","S1-CA-P2-6f","S1-DU-P1-1f","S1-DU-P1-2f","S1-DU-P2-1f","S1-DU-P1-4f","S1-DU-A1-6f","S1-DU-A1-5f","S1-DU-P1-3f","S1-DU-P1-5f","S1-DU-A1-3f","S1-DU-P1-6f","S1-DU-A1-2f","S1-VA-P1-1f","S1-VA-P1-3f","S1-VA-P1-5f","S2-CA-P2-2f","S2-DU-A1-2f","S2-DU-R1-2f","S2-DU-A1-4f","S2-DU-A1-5f","S2-DU-P1-1f","S2-DU-A1-6f","S2-DU-A2-4f","S2-DU-R1-6f","S2-DU-A1-3f","S2-DU-A2-1f","S2-DU-R1-3f","S2-DU-A2-3f","S2-DU-P1-6f","S2-DU-P1-4f","S2-DU-A2-2f","S2-RI-A1-5f","S2-RI-P1-3f","S2-RI-P1-2f","S2-RI-A1-2f","S3-DU-A2-3f","S3-RI-R2-3f","S3-RI-R2-1f") #Samples for which we will take the average basepeak of the non-outlier peaks
+ch4_samples4peakbase<- c("S1-CA-A1-2f","S1-CA-P2-6f","S1-DU-P1-1f","S1-DU-P1-2f","S1-DU-P2-1f","S1-DU-P1-4f","S1-DU-A1-6f","S1-DU-A1-5f","S1-DU-P1-3f","S1-DU-P1-5f","S1-DU-A1-3f","S1-DU-P1-6f","S1-DU-A1-2f","S1-VA-P1-1f","S1-VA-P1-3f","S1-VA-P1-5f","S2-CA-P2-2f","S2-DU-A1-2f","S2-DU-R1-2f","S2-DU-A1-4f","S2-DU-A1-5f","S2-DU-P1-1f","S2-DU-A1-6f","S2-DU-A2-4f","S2-DU-R1-6f","S2-DU-A1-3f","S2-DU-A2-1f","S2-DU-R1-3f","S2-DU-A2-3f","S2-DU-P1-6f","S2-DU-P1-4f","S2-DU-A2-2f","S2-RI-A1-5f","S2-RI-P1-3f","S2-RI-P1-2f","S2-RI-A1-2f","S3-DU-A2-3f","S3-RI-R2-3f","S3-RI-R2-1f","S1-DU-A1-4f") #Samples for which we will take the average basepeak of the non-outlier peaks
 
 ch4_samples4remarkbase<- c("S1-CA-R1-3f") #Samples for which we will take the average of the whole remark as representative of sample
 
-ch4_customprocess<- c("S1-DA-P1-1f","S1-DA-A1-3f","S1-DU-A1-4f","S2-DA-A1-4f") #Samples for custom process: without any assigned peak (nothing detected in remark for co2 or ch4), with only 1 valid peak for peakbase and not good-enough remarkbaseline. To decide and process.
+ch4_customprocess<- c("S1-DA-P1-1f","S1-DA-A1-3f") #Samples for custom process: without any assigned peak (nothing detected in remark for co2 or ch4), with only 1 valid peak for peakbase and not good-enough remarkbaseline. To decide and process.
 
 ch4_samplesinspected<- c()#non-important, only to avoid clogging the graph with samples slightly bad (i.e. cv good but larger than 0.05)
 ch4_samplinginspected<- c("S1-CA","S1-CU","S1-DA","S1-DU","S1-RI","S1-VA",
@@ -173,8 +170,6 @@ ch4_samplinginspected<- c("S1-CA","S1-CU","S1-DA","S1-DU","S1-RI","S1-VA",
 
 
 
-
-#NOTHING INSPECTED&Decided for CO2: very difficult and noisy
 
 #CO2 inspection: 
 #Inspect samples with very high cv and clean individual peaks.
@@ -206,7 +201,7 @@ co2_peakout<- c("S1-CA-R2-3f_0.5_3","S1-CA-P1-4f_0.5_1","S1-CA-P1-4f_0.5_2","S1-
                 "S1-VA-R1-1f_0.5_3","S1-VA-R2-5f_0.5_1","S1-VA-R1-4f_0.5_3","S1-VA-A1-6f_0.5_3","S1-VA-R2-3f_0.5_2","S1-VA-R1-3f_0.5_1","S1-VA-A2-3f_0.5_3","S1-VA-A2-5f_0.5_3","S1-VA-A2-1f_0.5_2","S1-VA-R2-6f_0.5_1","S1-VA-A2-4f_0.5_3","S1-VA-A1-4f_0.5_2","S1-VA-A1-5f_0.5_1","S1-VA-P1-2f_0.5_2",
                 "S2-CA-A1-5f_0.5_1","S2-CA-R2-1f_0.5_1","S2-CA-P1-2f_0.5_2","S2-CA-P1-3f_0.5_1","S2-CA-P1-3f_0.5_3","S2-CA-P1-6f_0.5_1","S2-CA-P1-4f_0.5_2","S2-CA-A2-3f_0.5_3","S2-CA-R2-4f_0.5_1","S2-CA-R2-4f_0.5_3","S2-CA-P1-1f_0.5_1","S2-CA-A2-4f_0.5_2","S2-CA-A2-1f_0.5_3","S2-CA-A2-5f_0.5_1","S2-CA-A2-2f_0.5_1","S2-CA-A2-6f_0.5_3","S2-CA-R2-6f_0.5_3","S2-CA-R2-1f_0.5_3","S2-CA-R2-3f_0.5_3","S2-CA-A1-6f_0.5_1",
                 "S2-CU-P1-2f_0.5_3","S2-CU-A2-2f_0.5_2","S2-CU-P2-5f_0.5_1","S2-CU-P1-1f_0.5_3","S2-CU-A1-5f_0.5_3","S2-CU-P1-5f_0.5_1","S2-CU-A1-2f_0.5_1","S2-CU-P1-6f_0.5_1","S2-CU-P2-3f_0.5_1","S2-CU-P1-3f_0.5_3","S2-CU-A1-3f_0.5_1","S2-CU-P1-4f_0.5_1","S2-CU-A1-6f_0.5_2","S2-CU-R1-4f_0.5_2","S2-CU-R2-2f_0.5_3","S2-CU-R2-5f_0.5_3","S2-CU-R1-5f_0.5_3","S2-CU-R1-6f_0.5_3","S2-CU-A2-5f_0.5_1",
-                "S2-DA-R1-1f_0.5_3","S2-DA-R1-1f_0.5_1","S2-DA-P1-1f_0.5_2","S2-DA-A2-3f_0.5_2","S2-DA-A2-3f_0.5_4","S2-DA-R1-5f_0.5_1","S2-DA-R1-2f_0.5_2","S2-DA-R1-6f_0.5_2","S2-DA-A2-5f_0.5_2","S2-DA-P1-2f_0.5_1","S2-DA-P1-6f_0.5_1","S2-DA-A1-2f_0.5_2","S2-DA-P2-6f_0.5_2",
+                "S2-DA-R1-1f_0.5_3","S2-DA-R1-1f_0.5_1","S2-DA-P1-1f_0.5_2","S2-DA-A2-3f_0.5_2","S2-DA-A2-3f_0.5_4","S2-DA-R1-5f_0.5_1","S2-DA-R1-2f_0.5_2","S2-DA-R1-6f_0.5_2","S2-DA-A2-5f_0.5_2","S2-DA-P1-2f_0.5_1","S2-DA-P1-6f_0.5_1","S2-DA-A1-2f_0.5_2","S2-DA-A1-4f_0.5_4","S2-DA-P2-6f_0.5_2",
                 "S2-DU-R1-5f_0.5_2","S2-DU-R1-5f_0.5_3","S2-DU-R1-4f_0.5_1","S2-DU-A1-4f_0.5_1","S2-DU-A1-4f_0.5_2","S2-DU-A1-3f_0.5_5","S2-DU-A1-3f_0.5_4","S2-DU-A2-4f_0.5_3","S2-DU-A1-5f_0.5_1","S2-DU-R2-2f_0.5_1","S2-DU-R2-1f_0.5_1","S2-DU-A2-2f_0.5_2","S2-DU-R2-3f_0.5_1","S2-DU-A2-1f_0.5_3","S2-DU-P1-3f_0.5_1","S2-DU-P2-6f_0.5_1","S2-DU-R2-4f_0.5_1",
                 "S2-RI-R1-2f_0.5_2","S2-RI-R1-2f_0.5_3","S2-RI-A1-6f_0.5_2","S2-RI-A1-5f_0.5_1","S2-RI-R1-6f_0.5_1","S2-RI-R2-6f_0.5_5","S2-RI-P1-1f_0.5_1","S2-RI-R2-3f_0.5_2","S2-RI-R2-3f_0.5_5","S2-RI-R2-1f_0.5_3","S2-RI-P1-3f_0.5_1","S2-RI-R2-2f_0.5_3","S2-RI-R2-2f_0.5_1","S2-RI-P2-4f_0.5_3","S2-RI-P1-2f_0.5_3","S2-RI-A2-5f_0.5_1","S2-RI-R2-3f_0.5_1","S2-RI-A2-4f_0.5_1","S2-RI-P1-4f_0.5_3","S2-RI-P1-2f_0.5_4","S2-RI-A2-6f_0.5_2","S2-RI-P1-5f_0.5_3","S2-RI-R2-5f_0.5_2","S2-RI-A1-1f_0.5_1",
                 "S3-DU-A1-1f_0.5_1","S3-DU-A1-1f_0.5_2","S3-DU-A1-1f_0.5_5","S3-DU-A2-1f_0.5_1","S3-DU-A2-1f_0.5_3","S3-DU-A1-4f_0.5_1","S3-DU-A2-6f_0.5_2","S3-DU-A2-6f_0.5_3","S3-DU-R2-3f_0.5_1","S3-DU-P2-1f_0.5_1","S3-DU-P2-4f_0.5_1","S3-DU-A1-5f_0.5_2","S3-DU-R2-4f_0.5_3","S3-DU-P1-2f_0.5_2","S3-DU-A2-3f_0.5_2","S3-DU-A1-6f_0.5_1","S3-DU-P1-3f_0.5_2","S3-DU-A2-5f_0.5_3","S3-DU-R1-6f_0.5_2","S3-DU-R1-4f_0.5_1","S3-DU-P1-5f_0.5_3","S3-DU-A1-2f_0.5_2","S3-DU-R1-1f_0.5_2")#peaks that cannot be used (for anything)
@@ -214,13 +209,13 @@ co2_peakout<- c("S1-CA-R2-3f_0.5_3","S1-CA-P1-4f_0.5_1","S1-CA-P1-4f_0.5_2","S1-
 co2_samples4peakbase<- c() #Samples for which we will take the average basepeak of the non-outlier peaks
 
 co2_samples4remarkbase<- c("S1-CA-A1-2f","S1-CA-A1-6f","S1-CA-A1-1f",
-                           "S1-CU-P1-2f","S1-CU-A2-4f","S1-CU-R1-3f","S1-CU-R2-4f","S1-CU-R2-6f","S1-CU-R2-2f","S1-CU-A2-1f","S1-CU-A2-6f","S1-CU-R1-2f","S1-DA-P1-2f",
+                           "S1-CU-P1-2f","S1-CU-A2-4f","S1-CU-R1-3f","S1-CU-R2-4f","S1-CU-R2-6f","S1-CU-R2-2f","S1-CU-A2-1f","S1-CU-A2-6f","S1-CU-R1-2f","S1-DA-P1-2f","S1-DA-P1-3f","S1-DA-R1-6f",
                            "S1-RI-P2-3f","S1-RI-P2-2f",
                            "S1-VA-P2-3f","S1-VA-R2-4f","S1-VA-P2-4f","S1-VA-A1-1f","S1-VA-A1-2f","S1-VA-A1-3f","S1-VA-P2-2f","S1-VA-A2-6f","S1-VA-R2-1f","S1-VA-R2-2f","S1-VA-P2-5f","S1-VA-P2-1f",
                            "S2-CU-P2-1f","S2-CU-P2-2f","S2-CU-P2-4f","S2-CU-R2-1f",
                            "S2-DA-A2-6f","S2-DA-A2-4f")#Samples for which we will take the average of the whole remark
 
-co2_customprocess<- c("S1-DA-P1-1f","S1-DA-A1-3f","S1-DU-A1-4f","S1-DA-P1-3f") #Samples for custom process: without any assigned peak (nothing detected in remark for co2 or ch4), with only 1 valid peak for peakbase and not good-enough remarkbaseline. To decide and process.
+co2_customprocess<- c("S1-DA-P1-1f","S1-DA-A1-3f") #Samples for custom process: without any assigned peak (nothing detected in remark for co2 or ch4), with only 1 valid peak for peakbase and not good-enough remarkbaseline. To decide and process.
 
 co2_samplesinspected<- c("S3-DU-R2-5f","S3-DU-R2-1f","S3-DU-R2-2f","S3-DU-R2-3f","S2-DU-P1-1f","S2-DU-A1-3f","S2-DU-A2-3f")#non-important, only to avoid clogging the graph with samples slightly bad (i.e. cv good but larger than 0.05)
 co2_samplinginspected<- c("S1-CA",#Extremely noisy, not sure about outliers/keepers
@@ -236,8 +231,6 @@ co2_samplinginspected<- c("S1-CA",#Extremely noisy, not sure about outliers/keep
                           "S2-RI", #Clear peaks
                           "S3-DU" #Clear peaks
                           ) 
-
-#Weird:"S1-DA-P1-3f" clear negative Co2 peaks but resulting absolute Co2 ppm < 0 (calfactor issue)
 
 
 ##3. UB-UVEG Check####
@@ -432,7 +425,7 @@ rm(compare, ub,ub_match, uveg_best, ch4difmodel,co2difmodel,overestimation_ch4, 
 
 
 
-##---3. Export cleaned data ----
+##---4. Export cleaned data ----
 
 #Subset the UVEG data for S1 to keep good peaks only, 
 
@@ -484,21 +477,39 @@ allcores<- rbind(cores_peaks, cores_peakbase, cores_averageremark)
 s1cores<- allcores %>% 
   filter(grepl("^S1", sample))
 
-#Complete dataset (all injections with NAs for outliers)
-write.csv(s1cores, file=paste0(folder_export, "CO2_CH4_ppm_core_avg_sd_n.csv"), row.names = F)
+
+# Add custom process results: (excell in parent UVEG cores folder), add results from samples which necessitated custom process: 
+# S1-DA-P1-1f
+# S1-DA-A1-3f
+# S1-CU-A1-1f
+# S1-CU-A1-2f
+# S1-CU-A1-3f
+# S1-CU-A1-4f
+# S1-CU-A1-5f
+# S1-CU-A1-6f
+
+custom_results<-  read_xlsx(path = paste0(folder_root,"TF_cores_custom_process.xlsx"),sheet = "summary",na = "NA") %>% 
+  select(gas,sample, avg_ppm, sd_ppm, cv_ppm, n_injections, estimate)
+
+
+s1cores_all<- rbind(s1cores, custom_results) %>% arrange(gas,sample)
+
+#Check taht all samples have only 1 estimate for CH4 and CO2
+s1cores_all %>% 
+  group_by(gas,sample) %>% 
+  summarise(n_sample=n()) %>% 
+  filter(n_sample!=1)
 
 
 
-
-#List of samples for which a customprocess is needed: bad peak detection & baseline not usable:  
-customprocess<- c(paste0(ch4_customprocess, "_ch4"), paste0(co2_customprocess,"_co2"))
-
+#Complete dataset (estimate from injections, baselines, peak_bases)
+write.csv(s1cores_all, file=paste0(folder_export, "CO2_CH4_ppm_core_avg_sd_n.csv"), row.names = F)
 
 
-
+#Miscelanea
 #Inspect variability for cores
 #CO2
-allcores %>% 
+s1cores_all %>% 
   filter(gas=="co2") %>% 
   # filter(grepl("i",sample)) %>% 
   separate(sample, into = c("season","site","subsite","core"), sep = "-",remove = F) %>% 
@@ -511,7 +522,7 @@ allcores %>%
   ggtitle("CO2 (ppm)")
 
 #CH4
-allcores %>% 
+s1cores_all %>% 
   filter(gas=="ch4") %>% 
   # filter(grepl("i",sample)) %>% 
   separate(sample, into = c("season","site","subsite","core"), sep = "-",remove = F) %>% 
