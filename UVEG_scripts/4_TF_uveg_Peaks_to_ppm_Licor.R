@@ -85,8 +85,9 @@ for (i in integratedtoppm){
              nopeakbase_avg_ppm =avg_baseline/1000,
              nopeakbase_sd_ppm =sd_baseline/1000,
              remark_avg_ppm =avg_remark/1000,
-             remark_sd_ppm =sd_remark/1000) %>%
-      select(dayofanalysis, sample, ml_injected, peak_id, !!paste0(gasname, "_ppm"), unixtime_ofmax, peakSNR,peaksum, peakbase_ppm,nopeakbase_avg_ppm,nopeakbase_sd_ppm,remark_avg_ppm,remark_sd_ppm) %>% 
+             remark_sd_ppm =sd_remark/1000,
+             remark_n=n_remark) %>%
+      select(dayofanalysis, sample, ml_injected, peak_id, !!paste0(gasname, "_ppm"), unixtime_ofmax, peakSNR,peaksum, peakbase_ppm,nopeakbase_avg_ppm,nopeakbase_sd_ppm,remark_avg_ppm,remark_sd_ppm,remark_n) %>% 
       mutate(datetime=as.POSIXct(unixtime_ofmax))
 
   #Save ppm of peaks

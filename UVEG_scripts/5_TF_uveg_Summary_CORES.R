@@ -446,6 +446,7 @@ cores_peaks<- cores %>%
             sd_ppm= sd(ppm, na.rm=T),
             cv_ppm=abs(sd_ppm/avg_ppm),
             n_injections=sum(!is.na(ppm)),
+            n_base=NA_real_,
             estimate="peak-integration")
 
 #Samples for which we trust the peak-base as representative of sample concentration
@@ -456,6 +457,7 @@ cores_peakbase<-cores %>%
             sd_ppm= sd(peakbase_ppm, na.rm=T),
             cv_ppm=abs(sd_ppm/avg_ppm),
             n_injections=NA_real_,
+            n_base=sum(!is.na(peakbase_ppm)),
             estimate="average baseline") 
 
 #Samples for which we do not trust peak-derived concentrations, we think average remark concentration is more representative.
@@ -466,6 +468,7 @@ cores_averageremark<- cores %>%
             sd_ppm= mean(remark_sd_ppm, na.rm=T),
             cv_ppm=abs(sd_ppm/avg_ppm), 
             n_injections=NA_real_,
+            n_base=mean(remark_n, na.rm=T),
             estimate="average baseline")
            
 
@@ -489,7 +492,7 @@ s1cores<- allcores %>%
 # S1-CU-A1-6f
 
 custom_results<-  read_xlsx(path = paste0(folder_root,"TF_cores_custom_process.xlsx"),sheet = "summary",na = "NA") %>% 
-  select(gas,sample, avg_ppm, sd_ppm, cv_ppm, n_injections, estimate)
+  select(gas,sample, avg_ppm, sd_ppm, cv_ppm, n_injections,n_base, estimate)
 
 
 s1cores_all<- rbind(s1cores, custom_results) %>% arrange(gas,sample)
