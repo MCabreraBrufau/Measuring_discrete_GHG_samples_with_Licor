@@ -23,7 +23,7 @@ The peak detection and area integration script was adapted from [Miguel Cabrera'
 10. Run the script `5_1_Headspace_to_water_concentration.R`. This script uses the files `All_Injections_ppm_ch4_co2_n2o.csv`and `HeadSpace_auxiliary_template_filled.csv` to calculate water concentrations (in µM and µatm) for your headspace samples. It will return two output files: one containing the calculated concentrations for each injection, and another summarizing the mean values for up to three injections per sample.
 
 ### Additional Information – Requirements for Headspace Calulation
-If you need to calculate water concentration from headspace samples (add reference), you will need some additional information.
+If you need to calculate water concentration from headspace samples, you will need some additional information.
 
 You will need an auxiliary file called `HeadSpace_auxiliary_file.csv`, located in a folder named `Auxiliary_file` within your working directory, containing the following columns:
 
