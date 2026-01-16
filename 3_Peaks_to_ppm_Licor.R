@@ -1,25 +1,30 @@
 #Peaks to ppm 
 
 
-#Description: this script uses integrated_injections files produced in the "Raw_to_peaks_..." script and calculates ppm for each peak based on the calibration factor, volume injected and peak baseline concentration measured. It outputs ppm data for each peak and for each sample
+#Description: this script uses integrated_injections files produced in the "Raw_to_peaks_..." script and calculates ppm for each peak based on the calibration factor, volume injected and peak baseline concentration measured. It outputs ppm data for each integrated peak.
+
+#Calibration factor used here was obtained following the one-point calibration procedure described in the Licor-application note. Calibration factor should be obtained for each Li-COR setup, and standards should be treated in the exact same way as samples during injection to minimize biasses. Check the structure of the One-point_calibration_factor.csv included in the repo to see how you must create your own. 
 
 #Clean WD
 rm(list=ls())
 
 
-# ---- Directories ----
 
-#Root
-folder_root <- "C:/Users/Miguel/Dropbox/Licor_N2O" # You have to make sure this is pointing to the right folder in your local machine
+# ---- Directories ----
+#To test the repository functionality (with example data):
+project_root<- paste0(dirname(rstudioapi::getSourceEditorContext()$path),"/EXAMPLE_PROJECT")
+
+#TO PROCESS YOUR OWN DATA, uncomment the following line and edit with the full path to your own your project folder (no closing "/"), eg:  
+
+# project_root<- "C:/Users/User1/Documents/Licor-injections"
+
 
 #Data folders
-folder_results<- paste0(folder_root,"/Results_ppm")
+folder_results<- paste0(project_root,"/Results_ppm")
 
-#Here is the repo root, from which we get the calibration:
+#Here is the repository calibration folder, from which we get the calibration file:
 repo_root <- dirname(rstudioapi::getSourceEditorContext()$path)
 folder_calibration <- paste0(repo_root,"/calibration")
-
-
 
 
 # ---- Packages & functions ----
@@ -29,6 +34,9 @@ library(lubridate)
 library(stringr)
 library(ggpmisc)
 
+#Load repository functions
+files.sources = list.files(path = paste0(repo_root,"/functions"), full.names = T)
+for (f in files.sources){source(f)}
 
 
 # ---- Calculate ppm--------
@@ -42,7 +50,7 @@ integratedtoppm<- gsub(".csv","",gsub("integrated_injections_","",integratedfile
   
 
 
-#Get 1-point calibration factor (based on repeated standard injections of standardbottle during 3 weeks of analysis, sampled from exetainers treated in the same way as the samples. This has been tested to be more accurate than the calibration curves produced from tedlar bags)
+#Get 1-point calibration factor (based on repeated standard injections of standardbottle during 3 weeks of analysis, sampled from exetainers treated in the same way as the samples. This has been tested to be more accurate than the calibration curves produced from tedlar bags and stored as Calibration_and_limit_of_detection_2024-12-12.csv)
 calibration<- read_csv(paste0(folder_calibration, "/One-point_calibration_factor.csv"),show_col_types = F)
 
 for (i in integratedtoppm){

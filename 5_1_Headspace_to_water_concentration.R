@@ -1,24 +1,29 @@
 #Calculate water concentration from headspace measurements
 
+#You need to have filled the auxfile with the appropriate details (see 5_0_Create_auxiliary_template_file.R)
+
+
 #Library----
 library(tidyverse)
 library(errors)
+#Load external functions:
 source("https://raw.github.com/JorgeMonPe/Functions_headspace_calculation/main/Functions_gas_concentration.R")
 
+
 #Set folders paths----
-#You can work on your working directory (not recommended)
-#folder_root <- dirname(rstudioapi::getSourceEditorContext()$path)
-#You can set the folder in other path
-folder_root <- "/home/jorge/Documentos/Postdoctoral/Onedrive_UB/UB/NaturBPond/Hidrogeologos/Muestras_Licor" # You have to make sure this is pointing to the write folder on your local machine
+
+#To test the repository functionality (with example data):
+project_root<- paste0(dirname(rstudioapi::getSourceEditorContext()$path),"/EXAMPLE_PROJECT")
+
+#TO PROCESS YOUR OWN DATA, uncomment the following line and edit with the full path to your own your project folder (no closing "/"), eg:  
+
+# project_root<- "C:/Users/User1/Documents/Licor-injections"
+
 
 #Folders
-folder_results<- paste0(folder_root,"/Results_ppm")
-folder_auxfiles<- paste0(folder_root,"/Auxiliary_files")
-#Check if the folder exist and, if not, create one
-if (!dir.exists(folder_auxfiles)) {
-  # If it doesn't exist, create the folder
-  dir.create(folder_auxfiles)
-}
+folder_results<- paste0(project_root,"/Results_ppm")
+folder_auxfiles<- paste0(project_root,"/Auxiliary_files")
+
 
 #Import data----
 Allinjectionfile<- list.files(path = folder_results, pattern = "^All_Injections_ppm") #Find summary results with all injections
@@ -106,7 +111,7 @@ df <-df %>% mutate(Flags = str_trim(paste(
 )))
 
 #Export results all injections----
-folder_results_headspace <- paste0(folder_root,"/Results_headspace")
+folder_results_headspace <- paste0(project_root,"/Results_headspace")
 #Check if the folder exist and, if not, create one
 if (!dir.exists(folder_results_headspace)) {
   # If it doesn't exist, create the folder

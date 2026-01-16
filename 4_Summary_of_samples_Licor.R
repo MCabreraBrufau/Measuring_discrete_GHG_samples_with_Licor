@@ -17,16 +17,26 @@
 #Clean WD
 rm(list=ls())
 
+
+# ---- Directories ----
+
+#To test the repository functionality (with example data):
+project_root<- paste0(dirname(rstudioapi::getSourceEditorContext()$path),"/EXAMPLE_PROJECT")
+
+#TO PROCESS YOUR OWN DATA, uncomment the following line and edit with the full path to your own your project folder (no closing "/"), eg:  
+
+# project_root<- "C:/Users/User1/Documents/Licor-injections"
+
+
+
+#Results folder:
+folder_results<- paste0(project_root,"/Results_ppm/")
+
+
 # ---- packages & functions ----
 library(tidyverse)
 library(readxl)
 
-
-# ---- Directories ----
-
-#Root
-folder_root <- "C:/Users/Miguel/Dropbox/Licor_N2O" # You have to make sure this is pointing to the right folder in your local machine
-folder_results<- paste0(folder_root,"/Results_ppm_newperpeak/")
 
 
 #---1. Import & format----
@@ -93,7 +103,7 @@ using3best <- all %>%
   mutate(total_injections=sum(!is.na(ppm))) %>% 
   filter(total_injections>3) %>% 
   reframe(
-    ppm = select_lowest_cv(ppm, 3)
+    ppm = select_lowest_cv(ppm)
   ) %>% 
   mutate(Selected = T) %>% 
   filter(Selected) %>% 
@@ -134,7 +144,7 @@ combination<- usingall %>%
 
 write.csv(combination, paste0(folder_results, "All_Summary_ch4_co2_n2o_best3inj.csv"), row.names = F)
 
-#Provide gerenal summary (all injections used)
+#Provide general summary (all injections used)
 summary_allinjections<- usingall %>% 
   mutate(n_used=nall, 
          n_discarded=0) %>% 

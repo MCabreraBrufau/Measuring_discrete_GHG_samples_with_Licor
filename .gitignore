@@ -2,13 +2,13 @@
 .Rhistory
 .RData
 .Ruserdata
-Rawdata/*
+EXAMPLE_PROJECT/Rawdata/*
 # exception to the rule
-!Rawdata/TG10-01932-2024-12-12T000000.data
-!Rawdata/TG20-01377-2024-12-12T000000.data
-Results_ppm/*
-!Results_ppm/.gitkeep 
-Map_injections/*
-!Map_injections/.gitkeep
-Integration_plots/*
-!Integration_plots/.gitkeep
+!EXAMPLE_PROJECT/Rawdata/TG10-01932-2025-02-07T050000.data
+!EXAMPLE_PROJECT/Rawdata/TG20-01377-2025-02-07T050000.data
+EXAMPLE_PROJECT/Results_ppm/*
+!EXAMPLE_PROJECT/Results_ppm/.gitkeep 
+EXAMPLE_PROJECT/Map_injections/*
+!EXAMPLE_PROJECT/Map_injections/.gitkeep
+EXAMPLE_PROJECT/Integration_plots/*
+!EXAMPLE_PROJECT/Integration_plots/.gitkeep

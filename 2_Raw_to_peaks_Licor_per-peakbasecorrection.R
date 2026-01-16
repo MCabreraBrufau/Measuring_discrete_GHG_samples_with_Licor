@@ -1,47 +1,62 @@
 #Raw to integrated peaks and baselines#
 
-#Before to run this script, you must run "Map_injections.R" script and manually create the "corrected_XXX_map_injection..." file in the same folder. You can copy directly the Tstart, Tend and label from the raw_mapinjection OR edit if you have something to change. You also need to specify in "corrected_XXX_map_injection..."which Licor was connected upstream (i.e. first in receiving the injected sample): options are "TG20" (for LicorN2O first) OR "TG10" (for LicorCH4&CO2 first).This info is used to set the width of integration windows according to the upstream-downstream position of the Licors. 
+#Before to run this script, you must run "Map_injections.R" script and manually create the "corrected_XXX_map_injection..." files from the "raw_xxx_map_injection..." within the Map_injections folder. You can copy directly the 'Tstart', 'Tend' and 'label' from the raw_mapinjection OR edit if you have something to change. You also need to specify in 'firstlicor_TG10_or_TG20' instrument was connected upstream (i.e. first in receiving the injected sample): options are "TG20" (for LicorN2O first) OR "TG10" (for LicorCH4&CO2 first).This info is used to set the width of integration windows according to the upstream-downstream position of the Licors. #For data in "EXAMPLE_PROJECT" folder, TG10 was the first Licor Upstream. 
 
-#Description: this script takes raw-files from Li-COR 7820 and Li-COR 7810 containing discrete injections, corrected injection_sequences (with label, start and stop) and calculates integrated peaks along with signal-to-noise ratio for each injection. It also generates inspection plots (baseline correction & integration) and stores the results in csv format. It also extracts the baseline data for ambient lab air and zero-Air from cylinder. 
+#IMPORTANT: Make sure the separator of the csv file (comma [,] separated values) is not changed when you modify the files. Excell might swap separator from comma to semicolon depending on your geographic configuration. Use text-editors (notepad, notepad++) to check the actual separator in the csv files and to correct them if needed. 
+
+#Description: This script integrates peaks resulting from discrete open-loop injections. 
+
+#Inputs: 
+  #Rawfiles from Li-COR 7820 and Li-COR 7810
+  #corrected_map_injection files
+
+#Outputs: 
+  #Integrated injection files (peak integration data)
+  #Integration plots (plots to check quality, of integrations)
+  #Baseline files (statistics for remarks containing 'baseline', optional, not required for further steps)
 
 #Peak detection is based on difference between max and percentile-25 of each remark
-#Integration windows are fixed for every gas depending on the upstream-downstream Licor configuration
+#Integration windows are fixed for every gas depending on the upstream-downstream Licor configuration specified in corrected_map_injection files. 
 #Baseline correction is performed for every peak individually as the average signal of the first and last points in the integration window
 
-#For iterative runs: the script checks which data has already been integrated. For re-integrating after any edit in map_injections, you must first delete the integrated_injections csv files of the corresponding raw-file. 
-
+#REPEATED RUNS: 
+#the script checks which data has already been integrated and skips it. If you need to re-integrate (after inspection of integration plots and corresponding correction of map_injection files), you must delete the integrated injections csv files from the 'Results_ppm' folder. 
 
 #Clean WD
 rm(list=ls())
 
+
 # ---- Directories ----
+#To test the repository functionality (with example data):
+project_root<- paste0(dirname(rstudioapi::getSourceEditorContext()$path),"/EXAMPLE_PROJECT")
 
-#Root
-#Usually you will be working on your working directory
-#folder_root <- dirname(rstudioapi::getSourceEditorContext()$path)
-#But you can set the folder in other path
+#TO PROCESS YOUR OWN DATA, uncomment the following line and edit with the full path to your own your project folder (no closing "/"), eg:  
 
-folder_root<- "C:/Users/Miguel/Dropbox/Licor_N2O" # You have to make sure this is pointing to the right folder on your local machine
+# project_root<- "C:/Users/User1/Documents/Licor-injections"
+
+
 
 #Data folders
-folder_raw <- paste0(folder_root,"/Rawdata") #contains unedited files downloaded from licor
+folder_raw <- paste0(project_root,"/Rawdata") #contains unedited files downloaded from licor
 
 #Map injections
-folder_mapinjections<- paste0(folder_root,"/Map_injections") #Contains corrected_map_injections csv files with start and stop times of remarks and their corresponding labels, corrections should be made manually when needed (editing the csvs and re-saving with "corrected_" prefix)
+folder_mapinjections<- paste0(project_root,"/Map_injections") #Contains corrected_map_injections csv files with start and stop times of remarks and their corresponding labels, corrections should be made manually when needed (editing the csvs and re-saving with "corrected_" prefix)
 
 #Folder for plots
-folder_plots<-  paste0(folder_root,"/Integration plots") #Here we will generate one pdf per gas and raw-file (auto-name), plots of each injection sequence (baseline correction & integration)
+folder_plots<-  paste0(project_root,"/Integration_plots") #Here we will generate one pdf per gas and raw-file (auto-name), plots of each injection sequence (baseline correction & integration)
 if (!dir.exists(folder_plots)) {
   # If it doesn't exist, create the folder
   dir.create(folder_plots)
 }
 
 #Folder for results
-folder_results<- paste0(folder_root,"/Results_ppm")#Here we will generate one csv per gas and raw-file (auto-name), with individual peak parameters.
+folder_results<- paste0(project_root,"/Results_ppm")#Here we will generate one csv per gas and raw-file (auto-name), with individual peak parameters.
 if (!dir.exists(folder_results)) {
   # If it doesn't exist, create the folder
   dir.create(folder_results)
 }
+
+
 
 
 # ---- Packages & functions ----
@@ -175,7 +190,7 @@ for (i in rawtointegrate){
       
       ######2.1. Baselines #####
       if (grepl("baseline", inj)){
-        print(paste0('Baseline recording: ',inj))
+        print(paste0(gas,' Baseline recording: ',inj))
         
         #calculate descriptive statistics for baseline
         b<- inj_data %>% 
@@ -192,7 +207,7 @@ for (i in rawtointegrate){
       
       ###2.2. Injections#####
       else {
-        print(paste0("Injection sample: ", inj))
+        print(paste0(gas," Injection sample: ", inj))
         
         #Detect and integrate peaks, plot results, calculate  baseline SD within label for Signal to Noise ratio
         
@@ -355,7 +370,7 @@ for (i in rawtointegrate){
     write.csv(A,file = paste0(folder_results,"/", "integrated_injections_",gas, "_", i, ".csv"),row.names = F)
     
     #Save plots of integrations: use i for naming convention of pdf
-    print(paste0("Plotting integrations rawfile: ", i))
+    print(paste0("Plotting ",gas," integrations rawfile: ", i))
     #plot every injection sequence and their integrals: 
     pdf(file = paste0(folder_plots,"/Integrations_",gas, "_",i,".pdf"))  # Open PDF device
     
