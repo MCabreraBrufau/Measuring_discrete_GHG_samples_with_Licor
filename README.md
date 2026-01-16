@@ -19,13 +19,13 @@ The peak detection and area integration script was adapted from [Miguel Cabrera'
 
 #### To calculate water concentrations from headspace samples, follow the steps below.
 
-9. Create an auxliary file. You can download an example auxiliary file [here](Auxiliary_file/HeadSpace_auxiliary_template_filled.csv). You can create this file yourself or run the script `5_0_Create_auxiliary_template_file` to generate a template for your samples and enter the information manually. 
+9. Create an auxliary file. You can download an example auxiliary file [here](Auxiliary_files/HeadSpace_auxiliary_template_filled.csv). You can create this file yourself or run the script `5_0_Create_auxiliary_template_file` to generate a template for your samples and enter the information manually. 
 10. Run the script `5_1_Headspace_to_water_concentration.R`. This script uses the files `All_Injections_ppm_ch4_co2_n2o.csv`and `HeadSpace_auxiliary_template_filled.csv` to calculate water concentrations (in µM and µatm) for your headspace samples. It will return two output files: one containing the calculated concentrations for each injection, and another summarizing the mean values for up to three injections per sample.
 
 ### Additional Information – Requirements for Headspace Calulation
 If you need to calculate water concentration from headspace samples, you will need some additional information.
 
-You will need an auxiliary file called `HeadSpace_auxiliary_file.csv`, located in a folder named `Auxiliary_file` within your working directory, containing the following columns:
+You will need an auxiliary file called `HeadSpace_auxiliary_file.csv`, located in a folder named `Auxiliary_files` within your working directory, containing the following columns:
 
   1. **sample**: The same ID you use for injections. It usually follows a format like Site-Sample-Replicate.
   
@@ -41,4 +41,4 @@ You will need an auxiliary file called `HeadSpace_auxiliary_file.csv`, located i
   
   7. **Pressure**: Atmospheric pressure (in atm) during equilibration.
 
-You can download an example auxiliary file [here.](Auxiliary_file/HeadSpace_auxiliary_template_filled.csv)
+You can download an example auxiliary file [here.](Auxiliary_files/HeadSpace_auxiliary_template_filled.csv)
