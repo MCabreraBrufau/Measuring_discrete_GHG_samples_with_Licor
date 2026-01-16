@@ -12,5 +12,3 @@ Map_injections/*
 !Map_injections/.gitkeep
 Integration_plots/*
 !Integration_plots/.gitkeep
-Auxiliary_files/*
-!Auxiliary_files/HeadSpace_auxiliary_template_filled.csv
