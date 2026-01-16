@@ -8,7 +8,7 @@ The peak detection and area integration script was adapted from [Miguel Cabrera'
 
 ###  How to procedure:
 1. Download this folder
-2. Change the folder_root path in all scripts to the local path on your computer where you want to work and store the results. The path should point to a folder that contains a subfolder (called Rawdata) with the raw files.
+2. Change the project_root path in all scripts to the local path on your computer where you want to work and store the results. The path should point to a folder that contains a subfolder (called Rawdata) with the raw files. The 'EXAMPLE_PROJECT' can be used as project_root to test scripts behaviour.
 3. Place your raw files from the Li-COR 7820 and/or Li-COR 7810 in the Rawdata folder.
 4. Run the `1_Map_injections.R` script.
 5. Open the "raw_.\*_map_injection..." files, modify the columns labeled "\*_corrected," and save them as `*.csv` files, replacing "raw_.\*_map_injection..." with "corrected_..." in the file name.
@@ -19,7 +19,7 @@ The peak detection and area integration script was adapted from [Miguel Cabrera'
 
 #### To calculate water concentrations from headspace samples, follow the steps below.
 
-9. Create an auxliary file. You can download an example auxiliary file [here](Auxiliary_files/HeadSpace_auxiliary_template_filled.csv). You can create this file yourself or run the script `5_0_Create_auxiliary_template_file` to generate a template for your samples and enter the information manually. 
+9. Create an auxliary file. You can download an example auxiliary file [here](EXAMPLE_PROJECT/Auxiliary_files/HeadSpace_auxiliary_template_filled.csv). You can create this file yourself or run the script `5_0_Create_auxiliary_template_file` to generate a template for your samples and enter the information manually. 
 10. Run the script `5_1_Headspace_to_water_concentration.R`. This script uses the files `All_Injections_ppm_ch4_co2_n2o.csv`and `HeadSpace_auxiliary_template_filled.csv` to calculate water concentrations (in µM and µatm) for your headspace samples. It will return two output files: one containing the calculated concentrations for each injection, and another summarizing the mean values for up to three injections per sample.
 
 ### Additional Information – Requirements for Headspace Calulation
@@ -41,4 +41,4 @@ You will need an auxiliary file called `HeadSpace_auxiliary_file.csv`, located i
   
   7. **Pressure**: Atmospheric pressure (in atm) during equilibration.
 
-You can download an example auxiliary file [here.](Auxiliary_files/HeadSpace_auxiliary_template_filled.csv)
+You can download an example auxiliary file [here.](EXAMPLE_PROJECT/Auxiliary_files/HeadSpace_auxiliary_template_filled.csv)
