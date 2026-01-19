@@ -14,7 +14,7 @@
 #n_discarded_GHG: number of injections that were discarded (if any).
 
 
-#Clean WD
+#Clean Global environment
 rm(list=ls())
 
 

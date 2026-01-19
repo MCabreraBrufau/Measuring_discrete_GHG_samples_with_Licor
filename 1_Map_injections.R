@@ -25,7 +25,7 @@
 #'firstliccor_TG10_or_TG20': upstream instrument during acquisition (default NA), must be filled manually after running this script. Used to set integration window widths for each instrument.  
 
 
-#clean WD
+#Clean Global environment
 rm(list=ls())
 
 # ---- Directories ----
@@ -48,7 +48,7 @@ if (!dir.exists(folder_mapinjections)) {
   dir.create(folder_mapinjections)
 }
 
-# ---- packages & functions ----
+# ---- Packages & functions ----
 library(tidyverse)
 
 #Import functions of repo 

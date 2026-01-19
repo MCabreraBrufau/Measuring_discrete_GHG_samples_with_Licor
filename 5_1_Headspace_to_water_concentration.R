@@ -2,15 +2,10 @@
 
 #You need to have filled the auxfile with the appropriate details (see 5_0_Create_auxiliary_template_file.R)
 
+#Clean Global environment
+rm(list=ls())
 
-#Library----
-library(tidyverse)
-library(errors)
-#Load external functions:
-source("https://raw.github.com/JorgeMonPe/Functions_headspace_calculation/main/Functions_gas_concentration.R")
-
-
-#Set folders paths----
+#Directories ----
 
 #To test the repository functionality (with example data):
 project_root<- paste0(dirname(rstudioapi::getSourceEditorContext()$path),"/EXAMPLE_PROJECT")
@@ -25,15 +20,26 @@ folder_results<- paste0(project_root,"/Results_ppm")
 folder_auxfiles<- paste0(project_root,"/Auxiliary_files")
 
 
+# Packages & functions ----
+library(tidyverse)
+library(errors)
+
+#Import functions of repo 
+repo_root <- dirname((rstudioapi::getSourceEditorContext()$path))
+files.sources = list.files(path = paste0(repo_root,"/functions"), full.names = T)
+for (f in files.sources){source(f)}
+
+
+
 #Import data----
 Allinjectionfile<- list.files(path = folder_results, pattern = "^All_Injections_ppm") #Find summary results with all injections
-data <- read_csv(paste0(folder_results, "/", Allinjectionfile))
+data <- read_csv(paste0(folder_results, "/", Allinjectionfile),show_col_types = FALSE)
 data <- data %>% rename(SampleID = sample)
 
 
 #Import auxiliary file----
 Auxfile<- list.files(path = folder_auxfiles, pattern = "filled") #Find summary results with all injections
-aux <- read_csv(paste0(folder_auxfiles, "/", Auxfile))
+aux <- read_csv(paste0(folder_auxfiles, "/", Auxfile),show_col_types = FALSE)
 
 ##Check missed samples----
 missed_inj <- setdiff(aux$SampleID, data$SampleID) #samples missed in injections
@@ -104,7 +110,7 @@ df <-df %>% mutate(Flags = str_trim(paste(
   ifelse(is.na(avg_ppm_reference), 
          "Missing atmospheric reference sample", 
          ""),
-  ifelse(water_uM < 0, 
+  ifelse(as.numeric(water_uM) < 0, 
          "Unrealistic values — check for incorrect data or atmospheric references higher than expected or headspace concentration extremely low", 
          ""),
   sep = "; "
@@ -155,15 +161,15 @@ df_sum <- df %>% left_join(result)
 df_sum <- df_sum %>% 
   filter(Selected == "Yes")
 
-df_sum <- df_sum %>% group_by(SampleID, gas) %>% summarise(avg_ppm = mean(ppm),
-                                                                    sd_ppm = sd(ppm),
-                                                                    avg_ppm_reference = first(avg_ppm_reference),
-                                                                    sd_ppm_reference = first(sd_ppm_reference),
-                                                                    water_uM = mean(water_uM),
-                                                                    #water_uM_sd = errors(water_uM),
-                                                                    water_uatm = mean(water_uatm),
-                                                                    #water_uatm_sd = errors(water_uatm),
-                                                                    n = length(ppm))
+df_sum <- df_sum %>% group_by(SampleID, gas) %>% 
+  summarise(avg_ppm = mean(ppm),
+            sd_ppm = sd(ppm),
+            avg_ppm_reference = first(avg_ppm_reference),
+            sd_ppm_reference = first(sd_ppm_reference),
+            water_uM = mean(water_uM),
+            water_uatm = mean(water_uatm),
+            n = length(ppm))
+
 df_sum <- df_sum %>% mutate(water_uM_sd = errors(water_uM),
                           water_uatm_sd = errors(water_uatm)) %>% 
   relocate(water_uM_sd, .after = water_uM) %>% 

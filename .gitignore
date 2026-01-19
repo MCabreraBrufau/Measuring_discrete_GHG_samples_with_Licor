@@ -4,11 +4,13 @@
 .Ruserdata
 EXAMPLE_PROJECT/Rawdata/*
 # exception to the rule
-!EXAMPLE_PROJECT/Rawdata/TG10-01932-2025-02-07T050000.data
-!EXAMPLE_PROJECT/Rawdata/TG20-01377-2025-02-07T050000.data
+!EXAMPLE_PROJECT/Rawdata/TG10-01932-2025-10-16T060000.data
+!EXAMPLE_PROJECT/Rawdata/TG20-01377-2025-10-16T060000.data
 EXAMPLE_PROJECT/Results_ppm/*
 !EXAMPLE_PROJECT/Results_ppm/.gitkeep 
 EXAMPLE_PROJECT/Map_injections/*
 !EXAMPLE_PROJECT/Map_injections/.gitkeep
+!EXAMPLE_PROJECT/Map_injections/corrected_CO2_and_CH4_map_injection_TG10-01932-2025-10-16T060000.csv
+!EXAMPLE_PROJECT/Map_injections/corrected_N2O_map_injection_TG20-01377-2025-10-16T060000.csv
 EXAMPLE_PROJECT/Integration_plots/*
 !EXAMPLE_PROJECT/Integration_plots/.gitkeep

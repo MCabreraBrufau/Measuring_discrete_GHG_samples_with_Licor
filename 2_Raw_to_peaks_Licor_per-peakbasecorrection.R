@@ -15,14 +15,16 @@
   #Integration plots (plots to check quality, of integrations)
   #Baseline files (statistics for remarks containing 'baseline', optional, not required for further steps)
 
-#Peak detection is based on difference between max and percentile-25 of each remark
-#Integration windows are fixed for every gas depending on the upstream-downstream Licor configuration specified in corrected_map_injection files. 
-#Baseline correction is performed for every peak individually as the average signal of the first and last points in the integration window
+#Peak-max detection is based on difference between max and percentile-25 of each remark
+#Integration window widths are fixed for every gas depending on the upstream-downstream Licor configuration specified in corrected_map_injection files (12s for upstream, 23s for downstream instrument). 
+#Baseline correction is performed for every peak individually as value of the first point in the integration window (4s before max of peak).
+
+#If remarks that contain "baseline" are present, summary statistics are calculated and written to a different csv file (only as reference, they are not used for integration purposes). 
 
 #REPEATED RUNS: 
 #the script checks which data has already been integrated and skips it. If you need to re-integrate (after inspection of integration plots and corresponding correction of map_injection files), you must delete the integrated injections csv files from the 'Results_ppm' folder. 
 
-#Clean WD
+#Clean Global environment
 rm(list=ls())
 
 
@@ -239,23 +241,23 @@ for (i in rawtointegrate){
             #For each row, search for a non-na peak_id, look up to 4 seconds before and X seconds after the row i. Then assing the value of peak_id to the row i.
             #This results in the spread of the value of "peak_id" of the local maximum to secondsbefore_max seconds before and to secondsafter_max seconds after each identified maximum. 
             secondsbefore_max<- 4
-            #Aquí podría unificar CO2 y CH4 en 15, 20 o 18 segundos (el mismo para ambos) y otro para el N2O = 7
+        
             #If first licor is TG20  (N2O licor), set narrow integration windows for N2O and wider for CO2 and CH4
             if(firstlicor =="TG20"){
               if(gas == "N2O"){
                 secondsafter_max<- 7
               }
               if(gas == "CO2"){
-                secondsafter_max<- 15
+                secondsafter_max<- 18
               }
               if(gas == "CH4"){
-                secondsafter_max<- 20
+                secondsafter_max<- 18
               }
             }
             #If first licor is TG10  (CO2&CH4 licor), set narrow integration windows for CO2 and CH4 and wider N2O
             if(firstlicor =="TG10"){
               if(gas == "N2O"){
-                secondsafter_max<- 20
+                secondsafter_max<- 18
               }
               if(gas == "CO2"){
                 secondsafter_max<- 7
@@ -303,8 +305,8 @@ for (i in rawtointegrate){
         integrated<- inj_data %>% 
           filter(!is.na(peak_id)) %>% #keep only data of peaks
           group_by(label, peak_id) %>% #For each peak_id do the following
-          mutate(gas_bc=!!sym(gas) - ( (first(!!sym(gas)) + last(!!sym(gas)))/2 ),#Base-corrected timeseries for duration of peak (using average of the first and last data-points of the integration window)
-                 peak_base=((first(!!sym(gas))+last(!!sym(gas)))/2)) %>% 
+          mutate(gas_bc=!!sym(gas) - first(!!sym(gas)),#Base-correct timeseries for duration of peak (using the concentration of the first point of integration window, before the peak )
+                 peak_base=first(!!sym(gas))) %>% 
           summarise(peaksum=sum(gas_bc),
                     peak_base=mean(peak_base,na.rm=T),
                     secondspeak=sum(!is.na(gas_bc)),
@@ -363,8 +365,10 @@ for (i in rawtointegrate){
       
     } 
     
-    #Save baseline statistics of rawfile i 
+    if(nrow(B)>1){
+    #Save baseline statistics of rawfile i (only if a baseline is present)
     write.csv(B,file = paste0(folder_results,"/", "baselines_",gas, "_", i, ".csv"),row.names = F)
+    }
     
     #Save areas of injections for rawfile i   
     write.csv(A,file = paste0(folder_results,"/", "integrated_injections_",gas, "_", i, ".csv"),row.names = F)

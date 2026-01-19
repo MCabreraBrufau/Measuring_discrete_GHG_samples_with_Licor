@@ -1,11 +1,11 @@
 #Peaks to ppm 
 
 
-#Description: this script uses integrated_injections files produced in the "Raw_to_peaks_..." script and calculates ppm for each peak based on the calibration factor, volume injected and peak baseline concentration measured. It outputs ppm data for each integrated peak.
+#Description: this script uses integrated_injections files produced in the "Raw_to_peaks_..." script and calculates ppm for each peak based on the calibration factor, volume injected and baseline concentration measured (for each peak). It outputs ppm data for each integrated peak.
 
-#Calibration factor used here was obtained following the one-point calibration procedure described in the Licor-application note. Calibration factor should be obtained for each Li-COR setup, and standards should be treated in the exact same way as samples during injection to minimize biasses. Check the structure of the One-point_calibration_factor.csv included in the repo to see how you must create your own. 
+#Calibration factor used here was obtained following the one-point calibration procedure described in the Licor-application note. Calibration factor should be obtained for each Li-COR instrument, and standards should be treated in the exact same way as samples during injection to minimize biases. Check the structure of the One-point_calibration_factor.csv included in the "calibration" folder to see how you must create your own. 
 
-#Clean WD
+#Clean Global environment
 rm(list=ls())
 
 
