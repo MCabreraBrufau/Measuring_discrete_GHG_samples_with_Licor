@@ -11,7 +11,7 @@ These scripts are intended to work with raw-data files downloaded from Li-COR in
 2. Change the project_root path in all scripts to the local path on your computer where you want to work and store the results. The path should point to a folder that contains a subfolder (called Rawdata) with the raw files. The 'EXAMPLE_PROJECT' can be used as project_root to test scripts behaviour.
 3. Place your raw files from the Li-COR 7820 and/or Li-COR 7810 in the Rawdata folder.
 4. Run the `1_Map_injections.R` script. This will read and identify remarks recorded during data acquisition.
-5. Open the "raw_.\*_map_injection..." files, fill the columns labeled "\*_corrected," and save them as `*.csv` files, replacing "raw_..." with "corrected_..." in the file name.
+5. Open the "*raw_..._map_injection...*" files, fill the columns labeled "*..._corrected*" and save them as `.csv` files, replacing "*raw_...*" with "*corrected_...*" in the file name.
    You have to specify the upstream-downstream configuration of your instruments by writting "TG10" or "TG20" in the apropriate column. You have the option to copy-paste the auto-filled remark's details (start-end times and label) or to modify them in case of mistakes during acquisition. Corrected labels must be unique for each sample-injectionvolume combination and follow the pattern "samplecode_mlinjected" (underscore is reserved for separating the sample label from the volume of injection).
 6. Run the `2_Raw_to_peaks_Licor_per-peakbasecorrection.R` script. This will perform the peak-integration. Check the produced integration plots to identify potential errors in remark specification.
 7. If you have a calibration for your instrument (see `*.csv` file in calibration folder) you can run the `3_Peaks_to_ppm_Licor.R` script.
@@ -19,12 +19,12 @@ These scripts are intended to work with raw-data files downloaded from Li-COR in
 
 #### To calculate water concentrations from headspace samples, follow the steps below.
 
-9. Create an auxliary file for your data with script `5_0_Create_auxiliary_template_file`, fill-in the necessary details (see below) and save it as `HeadSpace_auxiliary_template_filled.csv`. 
+9. Create an auxliary file for your data with script `5_0_Create_auxiliary_template_file.R`, fill-in the necessary details (see below) and save it as `HeadSpace_auxiliary_template_filled.csv`. 
 10. Run the script `5_1_Headspace_to_water_concentration.R`. This script uses the `All_Injections_ppm_ch4_co2_n2o.csv`and `HeadSpace_auxiliary_template_filled.csv` files to calculate water concentrations (in µM and µatm) for your headspace samples. It will return two output files: one containing the calculated concentrations for each injection, and another summarizing the mean values for up to three injections per sample.
 
 ### Auxiliary file filling – Requirements for Headspace Calulation
 If you want to calculate water concentration from headspace samples, you will need some additional information.
-After creating the `HeadSpace_auxiliary_file.csv` file in step 9 (located in the `Auxiliary_files` subfolder), fill in the required details manually and save it as `HeadSpace_auxiliary_template_filled.csv`. You can download an already filled example file [here](EXAMPLE_PROJECT/Auxiliary_files/HeadSpace_auxiliary_template_filled.csv). You must fill the following columns: 
+After creating the `HeadSpace_auxiliary_file.csv` file (located in the `Auxiliary_files` subfolder) with step 9 above, fill in the required details manually and save it as `HeadSpace_auxiliary_template_filled.csv`. You can download an already filled example file [here](EXAMPLE_PROJECT/Auxiliary_files/HeadSpace_auxiliary_template_filled.csv). You must fill the following columns: 
 
   1. **sampleID**: The same ID you used for injections (it is filled automatically when you create the file in step 9). It usually follows a format like Site-Sample-Replicate.
   
