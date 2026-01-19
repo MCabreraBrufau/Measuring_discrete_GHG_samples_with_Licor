@@ -13,18 +13,24 @@ EXAMPLE_PROJECT/Results_headspace/*
 EXAMPLE_PROJECT/Results_ppm/*
 
 
-# exceptions to keep
+# exceptions to track
 !calibration/.gitkeep
 !calibration/Calibration_and_limit_of_detection_2024-12-12.csv
 !calibration/One-point_calibration_factor.csv
+
 !EXAMPLE_PROJECT/Auxiliary_files/.gitkeep
 !EXAMPLE_PROJECT/Auxiliary_files/HeadSpace_auxiliary_template_filled.csv
+
 !EXAMPLE_PROJECT/Integration_plots/.gitkeep
+
 !EXAMPLE_PROJECT/Map_injections/.gitkeep
 !EXAMPLE_PROJECT/Map_injections/corrected_CO2_and_CH4_map_injection_TG10-01932-2025-10-16T060000.csv
 !EXAMPLE_PROJECT/Map_injections/corrected_N2O_map_injection_TG20-01377-2025-10-16T060000.csv
+
 !EXAMPLE_PROJECT/Rawdata/.gitkeep
 !EXAMPLE_PROJECT/Rawdata/TG10-01932-2025-10-16T060000.data
 !EXAMPLE_PROJECT/Rawdata/TG20-01377-2025-10-16T060000.data
+
 !EXAMPLE_PROJECT/Results_headspace/.gitkeep
+
 !EXAMPLE_PROJECT/Results_ppm/.gitkeep 
