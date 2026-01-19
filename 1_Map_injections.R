@@ -49,7 +49,15 @@ if (!dir.exists(folder_mapinjections)) {
 }
 
 # ---- Packages & functions ----
-library(tidyverse)
+#Installs (if needed) and loads required packages:
+required_pkgs <- c("tidyverse")
+
+for (pkg in required_pkgs) {
+  if (!requireNamespace(pkg, quietly = TRUE)) {
+    install.packages(pkg)
+  }
+  library(pkg, character.only = TRUE)
+}
 
 #Import functions of repo 
 repo_root <- dirname((rstudioapi::getSourceEditorContext()$path))

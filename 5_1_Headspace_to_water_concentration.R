@@ -20,9 +20,18 @@ folder_results<- paste0(project_root,"/Results_ppm")
 folder_auxfiles<- paste0(project_root,"/Auxiliary_files")
 
 
-# Packages & functions ----
-library(tidyverse)
-library(errors)
+#Packages & functions ----
+#Installs (if needed) and loads required packages:
+required_pkgs <- c("tidyverse",
+                   "errors")
+
+for (pkg in required_pkgs) {
+  if (!requireNamespace(pkg, quietly = TRUE)) {
+    install.packages(pkg)
+  }
+  library(pkg, character.only = TRUE)
+}
+
 
 #Import functions of repo 
 repo_root <- dirname((rstudioapi::getSourceEditorContext()$path))

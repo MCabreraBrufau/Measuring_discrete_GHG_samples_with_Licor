@@ -33,10 +33,17 @@ project_root<- paste0(dirname(rstudioapi::getSourceEditorContext()$path),"/EXAMP
 folder_results<- paste0(project_root,"/Results_ppm/")
 
 
-# ---- packages & functions ----
-library(tidyverse)
-library(readxl)
+#Packages & functions ----
+#Installs (if needed) and loads required packages:
+required_pkgs <- c("tidyverse",
+                   "readxl")
 
+for (pkg in required_pkgs) {
+  if (!requireNamespace(pkg, quietly = TRUE)) {
+    install.packages(pkg)
+  }
+  library(pkg, character.only = TRUE)
+}
 
 
 #---1. Import & format----

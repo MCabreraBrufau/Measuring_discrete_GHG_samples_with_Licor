@@ -62,12 +62,20 @@ if (!dir.exists(folder_results)) {
 
 
 # ---- Packages & functions ----
-library(tidyverse)
-library(readxl)
-library(lubridate)
-library(pracma)
-library(stringr)
-library(ggpmisc)
+#Installs (if needed) and loads required packages:
+required_pkgs <- c("tidyverse",
+                   "readxl",
+                   "lubridate",
+                   "pracma",
+                   "stringr",
+                   "ggpmisc")
+
+for (pkg in required_pkgs) {
+  if (!requireNamespace(pkg, quietly = TRUE)) {
+    install.packages(pkg)
+  }
+  library(pkg, character.only = TRUE)
+}
 
 #Load repository functions
 repo_root <- dirname(rstudioapi::getSourceEditorContext()$path)

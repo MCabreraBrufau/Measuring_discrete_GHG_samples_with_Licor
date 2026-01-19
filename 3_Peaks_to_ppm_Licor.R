@@ -27,12 +27,20 @@ repo_root <- dirname(rstudioapi::getSourceEditorContext()$path)
 folder_calibration <- paste0(repo_root,"/calibration")
 
 
-# ---- Packages & functions ----
-library(tidyverse)
-library(readxl)
-library(lubridate)
-library(stringr)
-library(ggpmisc)
+#Packages & functions ----
+#Installs (if needed) and loads required packages:
+required_pkgs <- c("tidyverse",
+                   "readxl",
+                   "lubridate",
+                   "stringr",
+                   "ggpmisc")
+
+for (pkg in required_pkgs) {
+  if (!requireNamespace(pkg, quietly = TRUE)) {
+    install.packages(pkg)
+  }
+  library(pkg, character.only = TRUE)
+}
 
 #Load repository functions
 files.sources = list.files(path = paste0(repo_root,"/functions"), full.names = T)

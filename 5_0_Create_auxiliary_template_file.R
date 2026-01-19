@@ -3,10 +3,8 @@
 #Clean Global environment
 rm(list=ls())
 
-#Library----
-  library(tidyverse)
 
-#Set folders paths----
+# ---- Directories ----
 
 #To test the repository functionality (with example data):
 project_root<- paste0(dirname(rstudioapi::getSourceEditorContext()$path),"/EXAMPLE_PROJECT")
@@ -26,6 +24,20 @@ project_root<- paste0(dirname(rstudioapi::getSourceEditorContext()$path),"/EXAMP
     dir.create(folder_auxfiles)
   }
 
+  
+  
+  #Packages & functions ----
+  #Installs (if needed) and loads required packages:
+  required_pkgs <- c("tidyverse")
+  
+  for (pkg in required_pkgs) {
+    if (!requireNamespace(pkg, quietly = TRUE)) {
+      install.packages(pkg)
+    }
+    library(pkg, character.only = TRUE)
+  }
+  
+  
 
 #Import All_Injections_file data----
   Allinjectionfile<- list.files(path = folder_results, pattern = "^All_Injections_ppm") #Find summary results with all injections
