@@ -105,6 +105,7 @@ df <- df %>% mutate(avg_ppm_reference = set_errors(avg_ppm_reference, sd_ppm_ref
 df <- df %>% mutate(water_uM = case_when(gas == "co2" ~ nGHG_water_uM("CO2", ppm, Vol_H2O = Vol_water, Vol_air = Vol_air, T_Celsius = Temp, Patm_eq = Pressure, R = 0.08206, GHG_atm_ppmv = avg_ppm_reference),
                                          gas == "ch4" ~ nGHG_water_uM("CH4", ppm, Vol_H2O = Vol_water, Vol_air = Vol_air, T_Celsius = Temp, Patm_eq = Pressure, R = 0.08206, GHG_atm_ppmv = avg_ppm_reference),
                                          gas == "n2o" ~ nGHG_water_uM("N2O", ppm, Vol_H2O = Vol_water, Vol_air = Vol_air, T_Celsius = Temp, Patm_eq = Pressure, R = 0.08206, GHG_atm_ppmv = avg_ppm_reference)))
+#Warning message informs that water_uM has been transformed to an "errors" object, without uncertainty associated (by default). Lets propagate the appropriate error: 
 df <- df %>% mutate(water_uM_sd = errors(water_uM))
 
 #Caculate concentration uatm in the water----
