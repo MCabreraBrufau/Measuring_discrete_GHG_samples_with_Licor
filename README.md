@@ -4,7 +4,7 @@ These scripts calculate the concentrations of CO₂, CH₄, and N₂O based on d
 
 The scripts (1) integrate the area under the peak produced when injecting a small volume of gas sample into Li-COR portable analyzers (Li-7820 and Li-7810) connected in series and (2) calculate sample concentration in parts per million (ppm) using a one-point calibration factor. Additionally, you can (3) calculate molar GHG water concentration if you have samples originating from the headspace equilibration method. 
 
-These scripts are intended to work with raw-data files downloaded from Li-COR instruments that contain one remark per injection sequence (one unique remark active throughout all replicate injections of same volume of a particular gas sample). You have the option to edit remarks' start,stop and label after acquisition (see steps below).  
+These scripts are intended to work with raw-data files downloaded from Li-COR instruments that contain one remark per injection sequence (one unique remark active throughout all replicate injections of same volume of a particular gas sample). You have the option to edit remarks' start,stop and label after acquisition (see steps below). Injections must be separated by ca. 30 seconds for the integration procedure to work properly. You should use a low-GHG concentration air supply to obtain a stable baseline (from a synthetic air cylinder). 
 
 ###  How to proceed:
 1. Download this folder
