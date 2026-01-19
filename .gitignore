@@ -1,16 +1,30 @@
+#Things to ignore (not keep in github)
 .Rproj.user
 .Rhistory
 .RData
 .Ruserdata
-EXAMPLE_PROJECT/Rawdata/*
-# exception to the rule
-!EXAMPLE_PROJECT/Rawdata/TG10-01932-2025-10-16T060000.data
-!EXAMPLE_PROJECT/Rawdata/TG20-01377-2025-10-16T060000.data
-EXAMPLE_PROJECT/Results_ppm/*
-!EXAMPLE_PROJECT/Results_ppm/.gitkeep 
+#Everything inside the following folders is not tracked, with the below exceptions
+calibration/*
+EXAMPLE_PROJECT/Auxiliary_files/*
+EXAMPLE_PROJECT/Integration_plots/*
 EXAMPLE_PROJECT/Map_injections/*
+EXAMPLE_PROJECT/Rawdata/*
+EXAMPLE_PROJECT/Results_headspace/*
+EXAMPLE_PROJECT/Results_ppm/*
+
+
+# exceptions to keep
+!calibration/.gitkeep
+!calibration/Calibration_and_limit_of_detection_2024-12-12.csv
+!calibration/One-point_calibration_factor.csv
+!EXAMPLE_PROJECT/Auxiliary_files/.gitkeep
+!EXAMPLE_PROJECT/Auxiliary_files/HeadSpace_auxiliary_template_filled.csv
+!EXAMPLE_PROJECT/Integration_plots/.gitkeep
 !EXAMPLE_PROJECT/Map_injections/.gitkeep
 !EXAMPLE_PROJECT/Map_injections/corrected_CO2_and_CH4_map_injection_TG10-01932-2025-10-16T060000.csv
 !EXAMPLE_PROJECT/Map_injections/corrected_N2O_map_injection_TG20-01377-2025-10-16T060000.csv
-EXAMPLE_PROJECT/Integration_plots/*
-!EXAMPLE_PROJECT/Integration_plots/.gitkeep
+!EXAMPLE_PROJECT/Rawdata/.gitkeep
+!EXAMPLE_PROJECT/Rawdata/TG10-01932-2025-10-16T060000.data
+!EXAMPLE_PROJECT/Rawdata/TG20-01377-2025-10-16T060000.data
+!EXAMPLE_PROJECT/Results_headspace/.gitkeep
+!EXAMPLE_PROJECT/Results_ppm/.gitkeep 
