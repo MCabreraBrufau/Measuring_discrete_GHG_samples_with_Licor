@@ -7,7 +7,7 @@ The scripts (1) integrate the area under the peak produced when injecting a smal
 These scripts are intended to work with raw-data files downloaded from Li-COR instruments that contain one remark per injection sequence (one unique remark active throughout all replicate injections of same volume of a particular gas sample). You have the option to edit remarks' start,stop and label after acquisition (see steps below). Injections must be separated by ca. 30 seconds for the integration procedure to work properly. You should use a low-GHG concentration air supply to obtain a stable baseline (from a synthetic air cylinder). 
 
 ###  How to proceed:
-1. Download this folder
+1. Clone or Download this repository (Green "code" button in Github page, then "download ZIP")
 2. Change the project_root path in all scripts to the local path on your computer where you want to work and store the results. The path should point to a folder that contains a subfolder (called Rawdata) with the raw files. The 'EXAMPLE_PROJECT' can be used as project_root to test scripts behaviour.
 3. Place your raw files from the Li-COR 7820 and/or Li-COR 7810 in the Rawdata folder.
 4. Run the `1_Map_injections.R` script. This will read and identify remarks recorded during data acquisition.
