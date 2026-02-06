@@ -1,6 +1,6 @@
 # Scripts to Calculate the Concentration of CO₂, CH₄, and N₂O for Discrete Samples Measured with an Open Loop Method
 
-These scripts calculate the concentrations of CO₂, CH₄, and N₂O based on discrete samples measured using an open loop method (see the [Li-COR note](https://www.licor.cn/uploads/20240112/TGA-Note-Small-Samples_18944.pdf.pdf)).
+These scripts calculate the concentrations of CO₂, CH₄, and N₂O based on discrete samples measured using an open loop method (see the [Li-COR note](https://www.licor.cn/uploads/20240112/TGA-Note-Small-Samples_18944.pdf.pdf)). An example lab-protocol detailing analysis steps and considerations is also included.
 
 The scripts (1) integrate the area under the peak produced when injecting a small volume of gas sample into Li-COR portable analyzers (Li-7820 and Li-7810) connected in series and (2) calculate sample concentration in parts per million (ppm) using a one-point calibration factor. Additionally, you can (3) calculate molar GHG water concentration if you have samples originating from the headspace equilibration method. 
 
